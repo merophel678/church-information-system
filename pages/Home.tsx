@@ -43,12 +43,15 @@ const Home: React.FC = () => {
       {/* Mission Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <Icons.Church className="mx-auto text-parish-blue mb-6 h-12 w-12" />
-          <h2 className="text-3xl font-serif font-bold text-gray-800 mb-8">Our Mission</h2>
-          <p className="text-lg text-gray-600 leading-relaxed">
-            To form a community of disciples who, inspired by the Blessed Virgin Mary, 
-            strive to live the Gospel values, celebrate the sacraments with devotion, 
-            and serve the poor and marginalized in Sabang Borongan.
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-parish-blue/10 text-parish-blue rounded-full text-sm font-semibold mb-4">
+            <Icons.Sparkles size={16} /> Our Mission
+          </div>
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-800 mb-6">
+            Proclaim the good news of Jesus Christ
+          </h2>
+          <p className="text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+            We are a community formed by the Gospel—welcoming all, serving the poor, and living
+            the sacraments with joy in Sabang Borongan.
           </p>
         </div>
       </section>
@@ -93,7 +96,7 @@ const Home: React.FC = () => {
       {/* Footer Preview */}
       <footer className="bg-gray-900 text-gray-400 py-12">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p>&copy; 2024 Quasi-Parish of Our Lady of Miraculous Medal. Sabang Borongan.</p>
+          <p>&copy; 2025 Quasi-Parish of Our Lady of Miraculous Medal. Sabang Borongan.</p>
         </div>
       </footer>
     </div>

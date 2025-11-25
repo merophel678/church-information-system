@@ -8,6 +8,7 @@ const RequestService: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const today = new Date().toISOString().split('T')[0];
   
   const [category, setCategory] = useState<RequestCategory>(RequestCategory.SACRAMENT);
   const [serviceType, setServiceType] = useState('Baptism');
@@ -29,10 +30,27 @@ const RequestService: React.FC = () => {
     }
   };
 
+  const isValidContact = (value: string) => {
+    const trimmed = value.trim();
+    const phone = /^(?:\+639|09)\d{9}$/; // PH mobile formats: +639XXXXXXXXX or 09XXXXXXXXX
+    const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return phone.test(trimmed) || email.test(trimmed);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+    if (!isValidContact(formData.contactInfo)) {
+      setError('Enter a valid email or PH mobile (+63 or 09 followed by 9 digits).');
+      setIsSubmitting(false);
+      return;
+    }
+    if (formData.preferredDate && formData.preferredDate < today) {
+      setError('Preferred date cannot be in the past.');
+      setIsSubmitting(false);
+      return;
+    }
     try {
       await addRequest({
         category,
@@ -172,7 +190,13 @@ const RequestService: React.FC = () => {
                 placeholder="0917... or email@example.com"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                 value={formData.contactInfo}
-                onChange={(e) => setFormData({...formData, contactInfo: e.target.value})}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({...formData, contactInfo: value});
+                  if (error && isValidContact(value)) {
+                    setError('');
+                  }
+                }}
               />
             </div>
 
@@ -182,8 +206,15 @@ const RequestService: React.FC = () => {
                 <input 
                   type="date" 
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                  min={today}
                   value={formData.preferredDate}
-                  onChange={(e) => setFormData({...formData, preferredDate: e.target.value})}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({...formData, preferredDate: value});
+                    if (error && value >= today) {
+                      setError('');
+                    }
+                  }}
                 />
                 <p className="text-xs text-gray-500 mt-1">Subject to availability and confirmation by the parish office.</p>
               </div>
