@@ -1,10 +1,15 @@
 declare module 'express' {
-  const e: any;
-  export default e;
   export type Request = any;
   export type Response = any;
   export type NextFunction = any;
-  export type RequestHandler = any;
+  export type RequestHandler = (req: Request, res: Response, next?: NextFunction) => any;
+
+  export const Router: () => any;
+  export const json: (...args: any[]) => any;
+  export const urlencoded: (...args: any[]) => any;
+
+  const e: any;
+  export default e;
 }
 
 declare module 'cors' {
