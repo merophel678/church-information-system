@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `sacramentrecord` ADD COLUMN `archiveReason` VARCHAR(191) NULL,
+ALTER TABLE `SacramentRecord` ADD COLUMN `archiveReason` VARCHAR(191) NULL,
     ADD COLUMN `archivedAt` DATETIME(3) NULL,
     ADD COLUMN `archivedBy` VARCHAR(191) NULL,
     ADD COLUMN `isArchived` BOOLEAN NOT NULL DEFAULT false;

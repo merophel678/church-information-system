@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `issuedcertificate` ADD COLUMN `fileData` LONGBLOB NULL,
+ALTER TABLE `IssuedCertificate` ADD COLUMN `fileData` LONGBLOB NULL,
     ADD COLUMN `fileMimeType` VARCHAR(191) NULL,
     ADD COLUMN `fileName` VARCHAR(191) NULL,
     ADD COLUMN `fileSize` INTEGER NULL,
