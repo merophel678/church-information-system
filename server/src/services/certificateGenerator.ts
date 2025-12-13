@@ -236,7 +236,7 @@ const renderBaptismTemplate = (data: BaptismTemplateData): string => {
 
 const renderPdfFromHtml = async (html: string): Promise<Buffer> => {
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   const page = await browser.newPage();
@@ -247,7 +247,7 @@ const renderPdfFromHtml = async (html: string): Promise<Buffer> => {
     margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' }
   });
   await browser.close();
-  return pdf;
+  return Buffer.from(pdf);
 };
 
 export const generateBaptismCertificate = async (certificateId: string, uploadedBy: string) => {
