@@ -4,6 +4,7 @@ import prisma from '../prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import config from '../config.js';
 import { CertificateStatus } from '@prisma/client';
+import { generateBaptismCertificate } from '../services/certificateGenerator.js';
 
 const router = Router();
 
@@ -33,6 +34,22 @@ router.get('/', authenticate, async (_req, res) => {
   });
 
   res.json(response);
+});
+
+router.post('/:id/generate', authenticate, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const updated = await generateBaptismCertificate(id, req.user?.username ?? 'Staff');
+    res.json(sanitizeCertificate(updated));
+  } catch (err: any) {
+    const message = err?.message ?? 'Unable to generate certificate';
+    if (message.includes('not found') || message.includes('No baptism record')) {
+      return res.status(400).json({ message });
+    }
+    console.error(err);
+    res.status(500).json({ message: 'Unable to generate certificate' });
+  }
 });
 
 router.post('/:id/upload', authenticate, upload.single('file'), async (req, res) => {

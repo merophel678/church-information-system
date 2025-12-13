@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE `SacramentRecord`
+  ADD COLUMN `fatherName` VARCHAR(191) NULL,
+  ADD COLUMN `motherName` VARCHAR(191) NULL,
+  ADD COLUMN `birthDate` DATETIME(3) NULL,
+  ADD COLUMN `birthPlace` VARCHAR(191) NULL,
+  ADD COLUMN `baptismPlace` VARCHAR(191) NULL,
+  ADD COLUMN `sponsors` VARCHAR(191) NULL,
+  ADD COLUMN `registerBook` VARCHAR(191) NULL,
+  ADD COLUMN `registerPage` VARCHAR(191) NULL,
+  ADD COLUMN `registerLine` VARCHAR(191) NULL;

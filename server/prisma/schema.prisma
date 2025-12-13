@@ -119,6 +119,15 @@ model SacramentRecord {
   type        SacramentType
   officiant   String
   details     String
+  fatherName  String?
+  motherName  String?
+  birthDate   DateTime?
+  birthPlace  String?
+  baptismPlace String?
+  sponsors    String?
+  registerBook String?
+  registerPage String?
+  registerLine String?
   isArchived  Boolean       @default(false)
   archivedAt  DateTime?
   archivedBy  String?

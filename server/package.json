@@ -20,6 +20,7 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "puppeteer": "^23.9.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -29,6 +30,7 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.7.5",
+    "@types/puppeteer": "^7.0.4",
     "prisma": "^5.19.1",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3"
