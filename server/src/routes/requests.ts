@@ -101,8 +101,26 @@ router.put('/:id', authenticate, async (req, res) => {
 
 router.delete('/:id', authenticate, async (req, res) => {
   const { id } = req.params;
-  await prisma.serviceRequest.delete({ where: { id } });
-  res.status(204).send();
+  try {
+    const existing = await prisma.serviceRequest.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.issuedCertificate.deleteMany({ where: { requestId: id } });
+      await tx.sacramentRecord.updateMany({
+        where: { requestId: id },
+        data: { requestId: null }
+      });
+      await tx.serviceRequest.delete({ where: { id } });
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Failed to delete request', error);
+    res.status(500).json({ message: 'Unable to delete request' });
+  }
 });
 
 router.post('/:id/issue', authenticate, async (req, res) => {
