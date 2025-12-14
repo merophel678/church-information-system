@@ -98,16 +98,14 @@ router.put('/:id', authenticate, async (req, res) => {
     return res.status(404).json({ message: 'Request not found' });
   }
 
-  const dataToUpdate: typeof updates & { certificateRecipientBirthDate?: Date } = {
-    ...updates,
-    certificateRecipientBirthDate: updates.certificateRecipientBirthDate
-      ? new Date(updates.certificateRecipientBirthDate)
-      : undefined
-  };
-
   const updated = await prisma.serviceRequest.update({
     where: { id },
-    data: dataToUpdate
+    data: {
+      ...updates,
+      certificateRecipientBirthDate: updates.certificateRecipientBirthDate
+        ? new Date(updates.certificateRecipientBirthDate)
+        : undefined
+    }
   });
 
   if (
