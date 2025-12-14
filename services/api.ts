@@ -78,6 +78,9 @@ export const api = {
     contactInfo: string;
     preferredDate?: string;
     details: string;
+    certificateRecipientName?: string;
+    certificateRecipientBirthDate?: string;
+    requesterRelationship?: string;
   }) => apiRequest<ServiceRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
   updateRequest: (
     id: string,

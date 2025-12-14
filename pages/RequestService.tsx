@@ -17,7 +17,10 @@ const RequestService: React.FC = () => {
     requesterName: '',
     contactInfo: '',
     preferredDate: '',
-    details: ''
+    details: '',
+    certificateRecipientName: '',
+    certificateRecipientBirthDate: '',
+    requesterRelationship: ''
   });
 
   const handleCategoryChange = (newCategory: RequestCategory) => {
@@ -51,6 +54,11 @@ const RequestService: React.FC = () => {
       setIsSubmitting(false);
       return;
     }
+    if (category === RequestCategory.CERTIFICATE && !formData.certificateRecipientName.trim()) {
+      setError('Please enter the certificate holder\'s full name.');
+      setIsSubmitting(false);
+      return;
+    }
     try {
       await addRequest({
         category,
@@ -58,7 +66,10 @@ const RequestService: React.FC = () => {
         requesterName: formData.requesterName,
         contactInfo: formData.contactInfo,
         preferredDate: formData.preferredDate,
-        details: formData.details
+        details: formData.details,
+        certificateRecipientName: category === RequestCategory.CERTIFICATE ? formData.certificateRecipientName : undefined,
+        certificateRecipientBirthDate: category === RequestCategory.CERTIFICATE ? formData.certificateRecipientBirthDate : undefined,
+        requesterRelationship: category === RequestCategory.CERTIFICATE ? formData.requesterRelationship : undefined
       });
       setSubmitted(true);
       window.scrollTo(0, 0);
@@ -83,7 +94,15 @@ const RequestService: React.FC = () => {
         <button 
           onClick={() => {
             setSubmitted(false);
-            setFormData({ requesterName: '', contactInfo: '', preferredDate: '', details: '' });
+            setFormData({
+              requesterName: '',
+              contactInfo: '',
+              preferredDate: '',
+              details: '',
+              certificateRecipientName: '',
+              certificateRecipientBirthDate: '',
+              requesterRelationship: ''
+            });
           }}
           className="bg-parish-blue text-white px-8 py-3 rounded-full font-medium hover:bg-blue-800 transition"
         >
@@ -199,6 +218,41 @@ const RequestService: React.FC = () => {
                 }}
               />
             </div>
+
+            {category === RequestCategory.CERTIFICATE && (
+              <>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Certificate Holder (Full Name)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Name as it should appear on the certificate"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={formData.certificateRecipientName}
+                    onChange={(e) => setFormData({ ...formData, certificateRecipientName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Holder Birth Date (optional)</label>
+                  <input
+                    type="date"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={formData.certificateRecipientBirthDate}
+                    onChange={(e) => setFormData({ ...formData, certificateRecipientBirthDate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Relationship to Holder (optional)</label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    placeholder="e.g., Parent, Guardian"
+                    value={formData.requesterRelationship}
+                    onChange={(e) => setFormData({ ...formData, requesterRelationship: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
 
             {category === RequestCategory.SACRAMENT && (
               <div className="md:col-span-2">

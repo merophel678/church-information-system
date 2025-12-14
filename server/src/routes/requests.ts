@@ -22,10 +22,24 @@ router.get('/', authenticate, async (_req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { category, serviceType, requesterName, contactInfo, preferredDate, details } = req.body;
+  const {
+    category,
+    serviceType,
+    requesterName,
+    contactInfo,
+    preferredDate,
+    details,
+    certificateRecipientName,
+    certificateRecipientBirthDate,
+    requesterRelationship
+  } = req.body;
 
   if (!category || !serviceType || !requesterName || !contactInfo || !details) {
     return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  if (category === RequestCategory.CERTIFICATE && !certificateRecipientName) {
+    return res.status(400).json({ message: 'Certificate recipient name is required for certificate requests' });
   }
 
   const request = await prisma.serviceRequest.create({
@@ -35,7 +49,10 @@ router.post('/', async (req, res) => {
       requesterName,
       contactInfo,
       preferredDate,
-      details
+      details,
+      certificateRecipientName,
+      certificateRecipientBirthDate: certificateRecipientBirthDate ? new Date(certificateRecipientBirthDate) : undefined,
+      requesterRelationship
     }
   });
 
@@ -54,6 +71,9 @@ router.put('/:id', authenticate, async (req, res) => {
     status: RequestStatus;
     confirmedSchedule: string | null;
     adminNotes: string | null;
+    certificateRecipientName?: string;
+    certificateRecipientBirthDate?: string;
+    requesterRelationship?: string;
   }> & {
     recordDetails?: {
       name?: string;
@@ -78,9 +98,16 @@ router.put('/:id', authenticate, async (req, res) => {
     return res.status(404).json({ message: 'Request not found' });
   }
 
+  const dataToUpdate: typeof updates & { certificateRecipientBirthDate?: Date } = {
+    ...updates,
+    certificateRecipientBirthDate: updates.certificateRecipientBirthDate
+      ? new Date(updates.certificateRecipientBirthDate)
+      : undefined
+  };
+
   const updated = await prisma.serviceRequest.update({
     where: { id },
-    data: updates
+    data: dataToUpdate
   });
 
   if (
@@ -174,7 +201,7 @@ router.post('/:id/issue', authenticate, async (req, res) => {
       data: {
         requestId: request.id,
         type: request.serviceType,
-        recipientName: request.details.slice(0, 50),
+        recipientName: request.certificateRecipientName || request.details.slice(0, 50),
         requesterName: request.requesterName,
         issuedBy,
         deliveryMethod,

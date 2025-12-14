@@ -85,6 +85,9 @@ export interface ServiceRequest {
   contactInfo: string; // Email or Phone
   preferredDate?: string; // Relevant for sacraments
   details: string; // Purpose or additional info
+  certificateRecipientName?: string;
+  certificateRecipientBirthDate?: string;
+  requesterRelationship?: string;
   status: RequestStatus;
   submissionDate: string;
   // New fields for status logic

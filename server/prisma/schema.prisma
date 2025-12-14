@@ -102,6 +102,9 @@ model ServiceRequest {
   contactInfo        String
   preferredDate      String?
   details            String
+  certificateRecipientName       String?
+  certificateRecipientBirthDate  DateTime?
+  requesterRelationship          String?
   status             RequestStatus      @default(PENDING)
   submissionDate     DateTime           @default(now())
   confirmedSchedule  String?

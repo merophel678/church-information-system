@@ -266,11 +266,41 @@ export const generateBaptismCertificate = async (certificateId: string, uploaded
     throw new Error('Certificate not found');
   }
 
-  const record = certificate.request?.sacramentRecords.find(
+  let record = certificate.request?.sacramentRecords.find(
     (r) => r.type === SacramentType.BAPTISM && !r.isArchived
   );
   if (!record) {
-    throw new Error('No baptism record linked to this certificate');
+    const recipientName =
+      certificate.request?.certificateRecipientName ||
+      certificate.recipientName ||
+      certificate.request?.requesterName;
+
+    const birthDateFilter = certificate.request?.certificateRecipientBirthDate
+      ? new Date(certificate.request.certificateRecipientBirthDate)
+      : undefined;
+
+    const fallback = await prisma.sacramentRecord.findFirst({
+      where: {
+        type: SacramentType.BAPTISM,
+        isArchived: false,
+        name: recipientName,
+        ...(birthDateFilter ? { birthDate: birthDateFilter } : {})
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    if (fallback) {
+      // Link it for future calls if possible
+      if (!fallback.requestId) {
+        await prisma.sacramentRecord.update({
+          where: { id: fallback.id },
+          data: { requestId: certificate.requestId }
+        });
+      }
+      record = fallback;
+    } else {
+      throw new Error('No baptism record linked to this certificate');
+    }
   }
 
   const logoDataUri = loadLogoDataUri();
