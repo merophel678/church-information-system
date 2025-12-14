@@ -44,7 +44,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', authenticate, async (req, res) => {
   const { id } = req.params;
-  const updates = req.body as Partial<{
+  const { recordDetails, ...updates } = req.body as Partial<{
     category: RequestCategory;
     serviceType: string;
     requesterName: string;
@@ -54,7 +54,24 @@ router.put('/:id', authenticate, async (req, res) => {
     status: RequestStatus;
     confirmedSchedule: string | null;
     adminNotes: string | null;
-  }>;
+  }> & {
+    recordDetails?: {
+      name?: string;
+      date?: string;
+      type?: SacramentType;
+      officiant?: string;
+      details?: string;
+      fatherName?: string;
+      motherName?: string;
+      birthDate?: string;
+      birthPlace?: string;
+      baptismPlace?: string;
+      sponsors?: string;
+      registerBook?: string;
+      registerPage?: string;
+      registerLine?: string;
+    };
+  };
 
   const existing = await prisma.serviceRequest.findUnique({ where: { id } });
   if (!existing) {
@@ -74,6 +91,7 @@ router.put('/:id', authenticate, async (req, res) => {
     const sacramentType = mapServiceToSacramentType(updated.serviceType);
     if (sacramentType) {
       const possibleDate =
+        recordDetails?.date ||
         updates.confirmedSchedule?.split(' ')[0] ||
         updates.preferredDate ||
         existing.confirmedSchedule?.split(' ')[0] ||
@@ -85,12 +103,23 @@ router.put('/:id', authenticate, async (req, res) => {
 
       await prisma.sacramentRecord.create({
         data: {
-          name: updated.requesterName,
+          name: recordDetails?.name ?? updated.requesterName,
           date,
-          type: sacramentType,
-          officiant: 'Parish Priest',
-          details: `Generated from Request #${updated.id}. Details: ${updated.details}`,
-          requestId: updated.id
+          type: recordDetails?.type ?? sacramentType,
+          officiant: recordDetails?.officiant ?? 'Parish Priest',
+          details:
+            recordDetails?.details ??
+            `Generated from Request #${updated.id}. Details: ${updated.details}`,
+          requestId: updated.id,
+          fatherName: recordDetails?.fatherName,
+          motherName: recordDetails?.motherName,
+          birthDate: recordDetails?.birthDate ? new Date(recordDetails.birthDate) : undefined,
+          birthPlace: recordDetails?.birthPlace,
+          baptismPlace: recordDetails?.baptismPlace,
+          sponsors: recordDetails?.sponsors,
+          registerBook: recordDetails?.registerBook,
+          registerPage: recordDetails?.registerPage,
+          registerLine: recordDetails?.registerLine
         }
       });
     }

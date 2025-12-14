@@ -14,7 +14,22 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, async (req, res) => {
-  const { name, date, type, officiant, details } = req.body;
+  const {
+    name,
+    date,
+    type,
+    officiant,
+    details,
+    fatherName,
+    motherName,
+    birthDate,
+    birthPlace,
+    baptismPlace,
+    sponsors,
+    registerBook,
+    registerPage,
+    registerLine
+  } = req.body;
   if (!name || !date || !type || !officiant || !details) {
     return res.status(400).json({ message: 'All fields are required' });
   }
@@ -25,7 +40,16 @@ router.post('/', authenticate, async (req, res) => {
       date: new Date(date),
       type,
       officiant,
-      details
+      details,
+      fatherName,
+      motherName,
+      birthDate: birthDate ? new Date(birthDate) : undefined,
+      birthPlace,
+      baptismPlace,
+      sponsors,
+      registerBook,
+      registerPage,
+      registerLine
     }
   });
   res.status(201).json(record);
@@ -33,7 +57,22 @@ router.post('/', authenticate, async (req, res) => {
 
 router.put('/:id', authenticate, async (req, res) => {
   const { id } = req.params;
-  const { name, date, type, officiant, details } = req.body;
+  const {
+    name,
+    date,
+    type,
+    officiant,
+    details,
+    fatherName,
+    motherName,
+    birthDate,
+    birthPlace,
+    baptismPlace,
+    sponsors,
+    registerBook,
+    registerPage,
+    registerLine
+  } = req.body;
 
   const record = await prisma.sacramentRecord.update({
     where: { id },
@@ -42,7 +81,16 @@ router.put('/:id', authenticate, async (req, res) => {
       date: date ? new Date(date) : undefined,
       type,
       officiant,
-      details
+      details,
+      fatherName,
+      motherName,
+      birthDate: birthDate ? new Date(birthDate) : undefined,
+      birthPlace,
+      baptismPlace,
+      sponsors,
+      registerBook,
+      registerPage,
+      registerLine
     }
   });
   res.json(record);

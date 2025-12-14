@@ -1,4 +1,4 @@
-import { Announcement, DeliveryMethod, Donation, IssuedCertificate, MassSchedule, RequestCategory, SacramentRecord, ScheduleNote, ServiceRequest } from '../types';
+import { Announcement, DeliveryMethod, Donation, IssuedCertificate, MassSchedule, RequestCategory, SacramentRecord, SacramentRecordDetails, ScheduleNote, ServiceRequest } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api';
 
@@ -79,7 +79,11 @@ export const api = {
     preferredDate?: string;
     details: string;
   }) => apiRequest<ServiceRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
-  updateRequest: (id: string, updates: Partial<ServiceRequest>, token?: Token) =>
+  updateRequest: (
+    id: string,
+    updates: Partial<ServiceRequest> & { recordDetails?: SacramentRecordDetails },
+    token?: Token
+  ) =>
     apiRequest<ServiceRequest>(`/requests/${id}`, { method: 'PUT', body: JSON.stringify(updates) }, token),
   deleteRequest: (id: string, token?: Token) =>
     apiRequest<null>(`/requests/${id}`, { method: 'DELETE' }, token),

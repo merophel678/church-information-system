@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
-import { MassSchedule, Announcement, Donation, ServiceRequest, IssuedCertificate, DeliveryMethod, SacramentRecord, RequestCategory, RequestStatus, ScheduleNote } from '../types';
+import { MassSchedule, Announcement, Donation, ServiceRequest, IssuedCertificate, DeliveryMethod, SacramentRecord, RequestCategory, RequestStatus, ScheduleNote, SacramentRecordDetails } from '../types';
 import { api } from '../services/api';
 
 interface ParishContextType {
@@ -25,7 +25,7 @@ interface ParishContextType {
   updateDonation: (donation: Donation) => Promise<void>;
   deleteDonation: (id: string) => Promise<void>;
   addRequest: (request: Omit<ServiceRequest, 'id' | 'status' | 'submissionDate'>) => Promise<void>;
-  updateRequest: (id: string, updates: Partial<ServiceRequest>) => Promise<void>;
+  updateRequest: (id: string, updates: Partial<ServiceRequest> & { recordDetails?: SacramentRecordDetails }) => Promise<void>;
   deleteRequest: (id: string) => Promise<void>;
   issueCertificate: (requestId: string, details: { deliveryMethod: DeliveryMethod; notes: string; issuedBy: string }) => Promise<void>;
   uploadCertificateFile: (certificateId: string, file: File) => Promise<void>;
@@ -205,7 +205,7 @@ export const ParishProvider: React.FC<ParishProviderProps> = ({ children, authTo
     }
   };
 
-  const updateRequest = async (id: string, updates: Partial<ServiceRequest>) => {
+  const updateRequest = async (id: string, updates: Partial<ServiceRequest> & { recordDetails?: SacramentRecordDetails }) => {
     const token = requireAuth();
     const updated = await api.updateRequest(id, updates, token);
     setRequests((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));

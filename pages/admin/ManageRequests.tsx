@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../../components/Icons';
 import { useParish } from '../../context/ParishContext';
-import { RequestStatus, RequestCategory, ServiceRequest, DeliveryMethod } from '../../types';
+import { RequestStatus, RequestCategory, ServiceRequest, DeliveryMethod, SacramentRecordDetails, SacramentType } from '../../types';
 import { formatDate } from '../../utils/date';
 import { humanize } from '../../utils/text';
 import { useDialog } from '../../context/DialogContext';
@@ -30,6 +30,18 @@ const ManageRequests: React.FC = () => {
     confirmedSchedule: '',
     adminNotes: ''
   });
+
+  // Completion Modal State (for sacrament completion)
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+  const [completionTarget, setCompletionTarget] = useState<ServiceRequest | null>(null);
+  const [completionFormData, setCompletionFormData] = useState<SacramentRecordDetails>({
+    name: '',
+    date: '',
+    type: SacramentType.BAPTISM,
+    officiant: 'Parish Priest',
+    details: ''
+  });
+  const [isSavingCompletion, setIsSavingCompletion] = useState(false);
 
   const filteredRequests = requests.filter(req => {
     const matchesStatus = filterStatus === 'ALL' || req.status === filterStatus;
@@ -69,6 +81,15 @@ const ManageRequests: React.FC = () => {
   };
 
   // --- Status Change Logic ---
+  const inferSacramentType = (serviceType: string): SacramentType => {
+    const normalized = serviceType.toLowerCase();
+    if (normalized.includes('baptism')) return SacramentType.BAPTISM;
+    if (normalized.includes('confirmation')) return SacramentType.CONFIRMATION;
+    if (normalized.includes('marriage')) return SacramentType.MARRIAGE;
+    if (normalized.includes('funeral')) return SacramentType.FUNERAL;
+    return SacramentType.BAPTISM;
+  };
+
   const handleStatusChangeRequest = (req: ServiceRequest, newStatus: RequestStatus) => {
     // If status requires extra info, open modal
     if (newStatus === RequestStatus.SCHEDULED || newStatus === RequestStatus.APPROVED || newStatus === RequestStatus.REJECTED) {
@@ -78,6 +99,26 @@ const ManageRequests: React.FC = () => {
         adminNotes: req.adminNotes || ''
       });
       setIsStatusModalOpen(true);
+    } else if (newStatus === RequestStatus.COMPLETED && req.category === RequestCategory.SACRAMENT) {
+      const possibleDate = req.confirmedSchedule?.split(' ')[0] || req.preferredDate || new Date().toISOString().split('T')[0];
+      setCompletionTarget(req);
+      setCompletionFormData({
+        name: req.requesterName,
+        date: possibleDate || '',
+        type: inferSacramentType(req.serviceType),
+        officiant: 'Parish Priest',
+        details: req.details || '',
+        baptismPlace: req.details || '',
+        birthDate: '',
+        birthPlace: '',
+        fatherName: '',
+        motherName: '',
+        sponsors: '',
+        registerBook: '',
+        registerPage: '',
+        registerLine: ''
+      });
+      setIsCompletionModalOpen(true);
     } else {
       // Direct update for other statuses
       updateRequest(req.id, { status: newStatus });
@@ -106,6 +147,27 @@ const ManageRequests: React.FC = () => {
         title: 'Unable to update status',
         message: 'Please try again.'
       });
+    }
+  };
+
+  const handleCompletionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!completionTarget) return;
+    setIsSavingCompletion(true);
+    try {
+      await updateRequest(completionTarget.id, {
+        status: RequestStatus.COMPLETED,
+        recordDetails: completionFormData
+      });
+      setIsCompletionModalOpen(false);
+      setCompletionTarget(null);
+    } catch (error) {
+      await alert({
+        title: 'Unable to mark as completed',
+        message: 'Please check the details and try again.'
+      });
+    } finally {
+      setIsSavingCompletion(false);
     }
   };
 
@@ -342,7 +404,7 @@ const ManageRequests: React.FC = () => {
                 </p>
               </div>
             </form>
-          </div>
+      </div>
         </div>
       )}
 
@@ -394,6 +456,195 @@ const ManageRequests: React.FC = () => {
                 <button 
                   type="button"
                   onClick={() => setIsStatusModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg font-medium hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Completion Details Modal for Sacraments */}
+      {isCompletionModalOpen && completionTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 overflow-y-auto max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <p className="text-sm text-gray-500">Mark as Completed</p>
+                <h3 className="text-xl font-bold text-gray-900">{completionTarget.serviceType}</h3>
+                <p className="text-sm text-gray-600">Requester: {completionTarget.requesterName}</p>
+              </div>
+              <button onClick={() => setIsCompletionModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <Icons.X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCompletionSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Type</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.type || SacramentType.BAPTISM}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, type: e.target.value as SacramentType })}
+                  >
+                    {Object.values(SacramentType).map((type) => (
+                      <option key={type} value={type}>{humanize(type)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.name ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, name: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Sacrament</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.date ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.birthDate ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, birthDate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Officiant</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.officiant ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, officiant: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Birth Place</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.birthPlace ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, birthPlace: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Place of Baptism</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.baptismPlace ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, baptismPlace: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.fatherName ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, fatherName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.motherName ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, motherName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sponsors</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                  rows={2}
+                  placeholder="List sponsors/godparents"
+                  value={completionFormData.sponsors ?? ''}
+                  onChange={(e) => setCompletionFormData({ ...completionFormData, sponsors: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Register Book</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.registerBook ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, registerBook: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Page</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.registerPage ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, registerPage: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Line</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    value={completionFormData.registerLine ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, registerLine: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                  rows={3}
+                  required
+                  value={completionFormData.details ?? ''}
+                  onChange={(e) => setCompletionFormData({ ...completionFormData, details: e.target.value })}
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isSavingCompletion}
+                  className="flex-1 bg-parish-blue text-white py-2 rounded-lg font-bold hover:bg-blue-800 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSavingCompletion ? <Icons.Loader2 className="animate-spin" size={18} /> : <Icons.CheckCircle size={18} />}
+                  Save & Mark Completed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCompletionModalOpen(false)}
                   className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg font-medium hover:bg-gray-200"
                 >
                   Cancel

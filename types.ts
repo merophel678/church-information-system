@@ -12,11 +12,23 @@ export interface SacramentRecord {
   type: SacramentType;
   officiant: string;
   details: string; // e.g., Parents, Witnesses
+  fatherName?: string;
+  motherName?: string;
+  birthDate?: string;
+  birthPlace?: string;
+  baptismPlace?: string;
+  sponsors?: string;
+  registerBook?: string;
+  registerPage?: string;
+  registerLine?: string;
   isArchived: boolean;
   archivedAt?: string;
   archivedBy?: string;
   archiveReason?: string;
 }
+
+export type SacramentRecordInput = Omit<SacramentRecord, 'id' | 'isArchived' | 'archivedAt' | 'archivedBy' | 'archiveReason'>;
+export type SacramentRecordDetails = Partial<SacramentRecordInput>;
 
 export interface Announcement {
   id: string;
