@@ -8,7 +8,7 @@ import { humanize } from '../../utils/text';
 import { useDialog } from '../../context/DialogContext';
 
 const ManageRequests: React.FC = () => {
-  const { requests, updateRequest, deleteRequest, issueCertificate } = useParish();
+  const { requests, updateRequest, deleteRequest, issueCertificate, issuedCertificates, records } = useParish();
   const { confirm, alert } = useDialog();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
@@ -42,6 +42,12 @@ const ManageRequests: React.FC = () => {
     details: ''
   });
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
+
+  const hasCertificate = (requestId: string) =>
+    issuedCertificates.some((cert) => cert.requestId === requestId);
+
+  const hasRecord = (requestId: string) =>
+    records.some((rec) => rec.requestId === requestId && !rec.isArchived);
 
   const filteredRequests = requests.filter(req => {
     const matchesStatus = filterStatus === 'ALL' || req.status === filterStatus;
@@ -91,6 +97,13 @@ const ManageRequests: React.FC = () => {
   };
 
   const handleStatusChangeRequest = (req: ServiceRequest, newStatus: RequestStatus) => {
+    if (newStatus === RequestStatus.COMPLETED && req.category === RequestCategory.SACRAMENT && hasRecord(req.id)) {
+      alert({
+        title: 'Record already exists',
+        message: 'A sacrament record is already linked to this request. Please edit the record instead of completing again.'
+      });
+      return;
+    }
     // If status requires extra info, open modal
     if (newStatus === RequestStatus.SCHEDULED || newStatus === RequestStatus.APPROVED || newStatus === RequestStatus.REJECTED) {
       setStatusUpdateTarget({ req, newStatus });
@@ -275,6 +288,18 @@ const ManageRequests: React.FC = () => {
                     <span className={`text-xs inline-flex px-2 py-0.5 rounded-full mt-1 ${req.category === RequestCategory.SACRAMENT ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}`}>
                       {humanize(req.category)}
                     </span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {hasRecord(req.id) && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 flex items-center gap-1">
+                          <Icons.BookOpen size={12} /> Record exists
+                        </span>
+                      )}
+                      {hasCertificate(req.id) && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-100 flex items-center gap-1">
+                          <Icons.FileCheck size={12} /> Cert issued
+                        </span>
+                      )}
+                    </div>
                     {req.confirmedSchedule && (
                       <div className="mt-1 flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded w-fit">
                         <Icons.Clock size={12} />
@@ -315,12 +340,20 @@ const ManageRequests: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end items-center gap-2">
                       {req.category === RequestCategory.CERTIFICATE && req.status !== RequestStatus.COMPLETED && req.status !== RequestStatus.REJECTED && (
-                        <button 
-                          onClick={() => openIssueModal(req)}
-                          className="text-teal-600 hover:text-teal-900 p-1 border border-teal-200 rounded bg-teal-50 text-xs px-2"
-                        >
-                          Issue Cert
-                        </button>
+                        <>
+                          {hasCertificate(req.id) ? (
+                            <span className="text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded px-2 py-1 flex items-center gap-1" title="Certificate already issued">
+                              <Icons.FileCheck size={14} /> Issued
+                            </span>
+                          ) : (
+                            <button 
+                              onClick={() => openIssueModal(req)}
+                              className="text-teal-600 hover:text-teal-900 p-1 border border-teal-200 rounded bg-teal-50 text-xs px-2"
+                            >
+                              Issue Cert
+                            </button>
+                          )}
+                        </>
                       )}
                       <button 
                         onClick={() => handleDelete(req.id)}

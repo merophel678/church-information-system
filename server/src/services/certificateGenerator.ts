@@ -134,7 +134,7 @@ const renderBaptismTemplate = (data: BaptismTemplateData): string => {
     }
     .logo-placeholder {
       position: absolute;
-      left: 10px;
+      left: 30px;
       top: 0;
       width: 80px;
       height: 80px;

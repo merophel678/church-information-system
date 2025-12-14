@@ -194,6 +194,13 @@ router.post('/:id/issue', authenticate, async (req, res) => {
     return res.status(404).json({ message: 'Request not found' });
   }
 
+  const existingCert = await prisma.issuedCertificate.findFirst({
+    where: { requestId: request.id }
+  });
+  if (existingCert) {
+    return res.status(400).json({ message: 'Certificate already issued for this request' });
+  }
+
   const certificate = await prisma.$transaction(async (tx) => {
     const created = await tx.issuedCertificate.create({
       data: {

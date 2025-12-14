@@ -29,7 +29,11 @@ const CertificateRegistry: React.FC = () => {
     try {
       await generateCertificate(cert.id);
     } catch (err: any) {
-      setGenerateError(err?.message || 'Unable to generate certificate. Ensure a linked baptism record exists.');
+      const raw = err?.message || '';
+      const friendly = raw.includes('No baptism record linked')
+        ? 'Cannot generate: no baptism record is linked to this certificate. Please link/create the baptism record for this person and retry.'
+        : 'Unable to generate certificate right now. Please verify the linked baptism record and try again.';
+      setGenerateError(friendly);
     } finally {
       setGeneratingId(null);
     }
