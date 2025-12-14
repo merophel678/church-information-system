@@ -93,6 +93,8 @@ export const api = {
     token?: Token
   ) =>
     apiRequest<IssuedCertificate>(`/requests/${id}/issue`, { method: 'POST', body: JSON.stringify(data) }, token),
+  generateCertificate: (id: string, token?: Token) =>
+    apiRequest<IssuedCertificate>(`/certificates/${id}/generate`, { method: 'POST' }, token),
 
   // Records and certificates
   getRecords: (token?: Token, includeArchived = true) =>

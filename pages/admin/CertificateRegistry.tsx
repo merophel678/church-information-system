@@ -6,13 +6,11 @@ import { CertificateStatus, IssuedCertificate } from '../../types';
 import { formatDate } from '../../utils/date';
 
 const CertificateRegistry: React.FC = () => {
-  const { issuedCertificates, uploadCertificateFile, downloadCertificateFile } = useParish();
+  const { issuedCertificates, downloadCertificateFile, generateCertificate } = useParish();
   const [searchTerm, setSearchTerm] = useState('');
-  const [uploadTarget, setUploadTarget] = useState<IssuedCertificate | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
+  const [generateError, setGenerateError] = useState('');
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const filteredCertificates = issuedCertificates.filter((cert) =>
     [cert.recipientName, cert.requesterName, cert.type]
@@ -23,29 +21,17 @@ const CertificateRegistry: React.FC = () => {
 
   const pendingUploads = issuedCertificates.filter((cert) => cert.status === CertificateStatus.PENDING_UPLOAD).length;
   const completedUploads = issuedCertificates.filter((cert) => cert.status === CertificateStatus.UPLOADED).length;
-  const remindersDue = issuedCertificates.filter((cert) => cert.needsUploadReminder).length;
+  const totalCertificates = issuedCertificates.length;
 
-  const openUploadModal = (certificate: IssuedCertificate) => {
-    setUploadTarget(certificate);
-    setSelectedFile(null);
-    setUploadError('');
-  };
-
-  const handleUploadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uploadTarget || !selectedFile) {
-      setUploadError('Please choose a PDF, JPG, or PNG file to upload.');
-      return;
-    }
+  const handleGenerate = async (cert: IssuedCertificate) => {
+    setGenerateError('');
+    setGeneratingId(cert.id);
     try {
-      setIsUploading(true);
-      await uploadCertificateFile(uploadTarget.id, selectedFile);
-      setUploadTarget(null);
-      setSelectedFile(null);
-    } catch (err) {
-      setUploadError('Unable to upload the certificate. Please try again.');
+      await generateCertificate(cert.id);
+    } catch (err: any) {
+      setGenerateError(err?.message || 'Unable to generate certificate. Ensure a linked baptism record exists.');
     } finally {
-      setIsUploading(false);
+      setGeneratingId(null);
     }
   };
 
@@ -69,13 +55,13 @@ const CertificateRegistry: React.FC = () => {
     if (cert.status === CertificateStatus.UPLOADED) {
       return (
         <span className={`${base} bg-green-100 text-green-800`}>
-          <Icons.CheckCircle size={14} /> Uploaded
+          <Icons.CheckCircle size={14} /> Generated
         </span>
       );
     }
     return (
       <span className={`${base} bg-amber-100 text-amber-800`}>
-        <Icons.UploadCloud size={14} /> Pending Upload
+        <Icons.Printer size={14} /> Pending PDF
       </span>
     );
   };
@@ -96,7 +82,7 @@ const CertificateRegistry: React.FC = () => {
             <Icons.UploadCloud size={20} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Pending Uploads</p>
+            <p className="text-sm text-gray-500">Pending PDFs</p>
             <p className="text-2xl font-bold">{pendingUploads}</p>
           </div>
         </div>
@@ -105,7 +91,7 @@ const CertificateRegistry: React.FC = () => {
             <Icons.FileCheck size={20} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Completed Uploads</p>
+            <p className="text-sm text-gray-500">Generated PDFs</p>
             <p className="text-2xl font-bold">{completedUploads}</p>
           </div>
         </div>
@@ -114,8 +100,8 @@ const CertificateRegistry: React.FC = () => {
             <Icons.AlertTriangle size={20} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Reminders Needed</p>
-            <p className="text-2xl font-bold">{remindersDue}</p>
+            <p className="text-sm text-gray-500">Total Certificates</p>
+            <p className="text-2xl font-bold">{totalCertificates}</p>
           </div>
         </div>
       </div>
@@ -132,9 +118,9 @@ const CertificateRegistry: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          {downloadError && (
+          {(downloadError || generateError) && (
             <div className="text-sm text-red-600 flex items-center gap-2">
-              <Icons.AlertTriangle size={16} /> {downloadError}
+              <Icons.AlertTriangle size={16} /> {downloadError || generateError}
             </div>
           )}
         </div>
@@ -147,7 +133,7 @@ const CertificateRegistry: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Certificate</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Recipient</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Issuance</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Upload Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">PDF Status</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
@@ -161,11 +147,6 @@ const CertificateRegistry: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-semibold text-gray-900">{cert.recipientName}</div>
-                    {cert.needsUploadReminder && (
-                      <div className="text-xs text-rose-600 flex items-center gap-1 mt-1">
-                        <Icons.AlertTriangle size={14} /> Upload overdue
-                      </div>
-                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     <div>Issued: {formatDate(cert.dateIssued)}</div>
@@ -186,10 +167,20 @@ const CertificateRegistry: React.FC = () => {
                   <td className="px-6 py-4 text-right text-sm font-medium space-y-2">
                     {cert.status === CertificateStatus.PENDING_UPLOAD ? (
                       <button
-                        onClick={() => openUploadModal(cert)}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition text-xs"
+                        onClick={() => handleGenerate(cert)}
+                        disabled={generatingId === cert.id || !cert.type.toLowerCase().includes('baptism')}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={!cert.type.toLowerCase().includes('baptism') ? 'Generation template not available yet for this type' : ''}
                       >
-                        <Icons.UploadCloud size={14} /> Upload File
+                        {generatingId === cert.id ? (
+                          <>
+                            <Icons.Loader2 className="animate-spin" size={14} /> Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Icons.Printer size={14} /> Generate PDF
+                          </>
+                        )}
                       </button>
                     ) : (
                       <button
@@ -212,58 +203,6 @@ const CertificateRegistry: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {uploadTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Upload Certificate File</h2>
-              <button onClick={() => setUploadTarget(null)} className="text-gray-400 hover:text-gray-600">
-                <Icons.X size={24} />
-              </button>
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 mb-4">
-              <p className="font-semibold mb-1 flex items-center gap-2">
-                <Icons.AlertTriangle size={16} /> Upload Required
-              </p>
-              <p>
-                The issued certificate for <strong>{uploadTarget.recipientName}</strong> must be uploaded
-                before it can be viewed or downloaded.
-              </p>
-            </div>
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              <input
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3"
-              />
-              {uploadError && (
-                <div className="text-sm text-red-600 flex items-center gap-2">
-                  <Icons.AlertTriangle size={16} /> {uploadError}
-                </div>
-              )}
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={isUploading || !selectedFile}
-                  className="flex-1 bg-parish-blue text-white py-3 rounded-lg font-semibold hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isUploading ? 'Uploading...' : <><Icons.UploadCloud size={16} /> Upload</>}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUploadTarget(null)}
-                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

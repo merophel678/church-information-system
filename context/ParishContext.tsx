@@ -28,6 +28,7 @@ interface ParishContextType {
   updateRequest: (id: string, updates: Partial<ServiceRequest> & { recordDetails?: SacramentRecordDetails }) => Promise<void>;
   deleteRequest: (id: string) => Promise<void>;
   issueCertificate: (requestId: string, details: { deliveryMethod: DeliveryMethod; notes: string; issuedBy: string }) => Promise<void>;
+  generateCertificate: (certificateId: string) => Promise<IssuedCertificate>;
   uploadCertificateFile: (certificateId: string, file: File) => Promise<void>;
   downloadCertificateFile: (certificateId: string) => Promise<{ blob: Blob; filename: string }>;
   addRecord: (record: Omit<SacramentRecord, 'id'>) => Promise<void>;
@@ -234,6 +235,13 @@ export const ParishProvider: React.FC<ParishProviderProps> = ({ children, authTo
     );
   };
 
+  const generateCertificate = async (certificateId: string) => {
+    const token = requireAuth();
+    const generated = await api.generateCertificate(certificateId, token);
+    setIssuedCertificates((prev) => prev.map((item) => (item.id === generated.id ? generated : item)));
+    return generated;
+  };
+
   const uploadCertificateFile = async (certificateId: string, file: File) => {
     const token = requireAuth();
     const updated = await api.uploadCertificateFile(certificateId, file, token);
@@ -273,6 +281,7 @@ export const ParishProvider: React.FC<ParishProviderProps> = ({ children, authTo
         updateRequest,
         deleteRequest,
         issueCertificate,
+        generateCertificate,
         uploadCertificateFile,
         downloadCertificateFile,
         addRecord,
