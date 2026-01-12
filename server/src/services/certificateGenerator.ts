@@ -129,14 +129,22 @@ const renderBaptismTemplate = (data: BaptismTemplateData): string => {
       position: relative;
     }
     .header {
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
       margin-bottom: 30px;
-      position: relative;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+    }
+    .header-text {
+      flex: 1;
+      text-align: center;
     }
     .logo-placeholder {
-      position: absolute;
-      left: 30px;
-      top: 0;
+      flex-shrink: 0;
       width: 80px;
       height: 80px;
       border-radius: 50%;
@@ -190,10 +198,14 @@ const renderBaptismTemplate = (data: BaptismTemplateData): string => {
   <div class="certificate-container">
     <div class="border-frame">
       <div class="header">
-        <div class="logo-placeholder">${logoHtml}</div>
-        <div class="diocese">${diocese}</div>
-        <div class="parish-name">${parishName}</div>
-        <div class="location">${parishLocation}</div>
+        <div class="header-top">
+          <div class="logo-placeholder">${logoHtml}</div>
+          <div class="header-text">
+            <div class="diocese">${diocese}</div>
+            <div class="parish-name">${parishName}</div>
+            <div class="location">${parishLocation}</div>
+          </div>
+        </div>
         <div class="main-title">Certificate of Baptism</div>
       </div>
 
