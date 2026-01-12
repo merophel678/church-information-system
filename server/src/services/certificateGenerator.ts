@@ -175,6 +175,7 @@ const renderBaptismTemplate = (data: BaptismTemplateData): string => {
       font-size: 32pt;
       margin-top: 20px;
       margin-bottom: 30px;
+      text-align: center;
     }
     .data-grid {
       display: grid;
