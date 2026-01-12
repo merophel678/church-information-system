@@ -7,6 +7,8 @@ import { formatDate } from '../../utils/date';
 import { humanize } from '../../utils/text';
 import { useDialog } from '../../context/DialogContext';
 
+const parishPlaceDefault = 'Quasi Parish of Our Lady of the Miraculous Medal, Sabang, Borongan City';
+
 const ManageRequests: React.FC = () => {
   const { requests, updateRequest, deleteRequest, issueCertificate, issuedCertificates, records } = useParish();
   const { confirm, alert } = useDialog();
@@ -38,8 +40,9 @@ const ManageRequests: React.FC = () => {
     name: '',
     date: '',
     type: SacramentType.BAPTISM,
-    officiant: 'Parish Priest',
-    details: ''
+    officiant: '',
+    details: '',
+    baptismPlace: parishPlaceDefault
   });
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
 
@@ -116,12 +119,12 @@ const ManageRequests: React.FC = () => {
       const possibleDate = req.confirmedSchedule?.split(' ')[0] || req.preferredDate || new Date().toISOString().split('T')[0];
       setCompletionTarget(req);
       setCompletionFormData({
-        name: req.requesterName,
+        name: '',
         date: possibleDate || '',
         type: inferSacramentType(req.serviceType),
-        officiant: 'Parish Priest',
+        officiant: '',
         details: req.details || '',
-        baptismPlace: req.details || '',
+        baptismPlace: parishPlaceDefault,
         birthDate: '',
         birthPlace: '',
         fatherName: '',
@@ -568,6 +571,7 @@ const ManageRequests: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.officiant ?? ''}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, officiant: e.target.value })}
+                    placeholder="e.g., Fr. Juan"
                   />
                 </div>
               </div>

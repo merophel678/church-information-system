@@ -86,6 +86,7 @@ const renderBaptismTemplate = (data: BaptismTemplateData): string => {
   const issueDay = ordinal(issueDate);
   const issueMonthYear = monthYearUpper(issueDate);
   const birthDateText = fullDateUpper(birthDate);
+  const baptismPlaceText = (baptismPlace || `${parishName}, ${parishLocation}`).toUpperCase();
 
   const logoHtml = logoDataUri
     ? `<img src="${logoDataUri}" alt="Logo" style="width:80px;height:80px;border-radius:50%;object-fit:contain;" />`
@@ -216,7 +217,7 @@ const renderBaptismTemplate = (data: BaptismTemplateData): string => {
       <div class="gothic-text">was solemnly baptized according to the Rites of the Roman Catholic Church</div>
 
       <div class="body-text">
-        on the <span class="highlight">${baptismDay}</span> day of <span class="highlight">${baptismMonthYear}</span> at the <span class="highlight">${parishName.toUpperCase()}</span>, ${baptismPlace || parishLocation}, by the <span class="highlight">${priestName.toUpperCase()}</span>, the sponsors <span class="highlight">${sponsors}</span> as it appears in the Baptismal Register Book No. ${registerBook || '___'}, page ${registerPage || '___'}, line no. ${registerLine || '___'}
+        on the <span class="highlight">${baptismDay}</span> day of <span class="highlight">${baptismMonthYear}</span> at the <span class="highlight">${baptismPlaceText}</span>, by the <span class="highlight">${priestName.toUpperCase()}</span>, the sponsors <span class="highlight">${sponsors}</span> as it appears in the Baptismal Register Book No. ${registerBook || '___'}, page ${registerPage || '___'}, line no. ${registerLine || '___'}
       </div>
 
       <div class="body-text">
@@ -312,12 +313,12 @@ export const generateBaptismCertificate = async (certificateId: string, uploaded
     birthDate: record.birthDate ?? null,
     birthPlace: (record.birthPlace ?? '').toUpperCase(),
     baptismDate: record.date ?? null,
-    baptismPlace: (record.baptismPlace ?? record.details ?? '').toUpperCase(),
+    baptismPlace: (record.baptismPlace ?? '').toUpperCase(),
     sponsors: (record.sponsors ?? '').toUpperCase(),
     registerBook: record.registerBook ?? '',
     registerPage: record.registerPage ?? '',
     registerLine: record.registerLine ?? '',
-    priestName: certificate.issuedBy || 'Parish Priest',
+    priestName: record.officiant || certificate.issuedBy || 'Parish Priest',
     priestTitle: 'Parish Priest',
     issueDate: certificate.dateIssued,
     parishName: parishDefaults.parishName,
