@@ -123,7 +123,7 @@ const ManageRequests: React.FC = () => {
         date: possibleDate || '',
         type: inferSacramentType(req.serviceType),
         officiant: '',
-        details: req.details || '',
+        details: '',
         baptismPlace: parishPlaceDefault,
         birthDate: '',
         birthPlace: '',
@@ -169,6 +169,13 @@ const ManageRequests: React.FC = () => {
   const handleCompletionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!completionTarget) return;
+    if (completionFormData.birthDate && completionFormData.date && completionFormData.birthDate > completionFormData.date) {
+      await alert({
+        title: 'Invalid birth date',
+        message: 'Birth date cannot be later than the sacrament date.'
+      });
+      return;
+    }
     setIsSavingCompletion(true);
     try {
       await updateRequest(completionTarget.id, {
@@ -525,6 +532,7 @@ const ManageRequests: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.type || SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, type: e.target.value as SacramentType })}
+                    disabled
                   >
                     {Object.values(SacramentType).map((type) => (
                       <option key={type} value={type}>{humanize(type)}</option>
@@ -560,6 +568,7 @@ const ManageRequests: React.FC = () => {
                     type="date"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.birthDate ?? ''}
+                    max={completionFormData.date || undefined}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, birthDate: e.target.value })}
                   />
                 </div>
@@ -659,16 +668,15 @@ const ManageRequests: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                  rows={3}
-                  required
-                  value={completionFormData.details ?? ''}
-                  onChange={(e) => setCompletionFormData({ ...completionFormData, details: e.target.value })}
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    rows={3}
+                    value={completionFormData.details ?? ''}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, details: e.target.value })}
+                  />
+                </div>
 
               <div className="pt-2 flex gap-3">
                 <button
