@@ -7,7 +7,7 @@ import { humanize } from '../utils/text';
 import { useDialog } from '../context/DialogContext';
 
 const Records: React.FC = () => {
-  const { records, addRecord, updateRecord, archiveRecord, unarchiveRecord } = useParish();
+  const { records, addRecord, archiveRecord, unarchiveRecord } = useParish();
   const { prompt, alert, confirm } = useDialog();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
@@ -15,8 +15,6 @@ const Records: React.FC = () => {
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<SacramentRecord | null>(null);
 
   const parishPlaceDefault = 'Quasi Parish of Our Lady of the Miraculous Medal, Sabang, Borongan City';
@@ -73,57 +71,8 @@ const Records: React.FC = () => {
     }
   };
 
-  const toInputDate = (value?: string | null) => {
-    if (!value) return '';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '';
-    }
-    return date.toISOString().split('T')[0];
-  };
-
-  const handleOpenModal = (record?: SacramentRecord) => {
-    if (record) {
-      setIsEditing(true);
-      setEditId(record.id);
-      setFormData({
-        name: record.name ?? '',
-        date: toInputDate(record.date),
-        type: record.type,
-        officiant: record.officiant ?? '',
-        details: record.details ?? '',
-        fatherName: record.fatherName ?? '',
-        motherName: record.motherName ?? '',
-        birthDate: toInputDate(record.birthDate),
-        birthPlace: record.birthPlace ?? '',
-        baptismDate: toInputDate(record.baptismDate),
-        baptismPlace: record.baptismPlace ?? '',
-        sponsors: record.sponsors ?? '',
-        registerBook: record.registerBook ?? '',
-        registerPage: record.registerPage ?? '',
-        registerLine: record.registerLine ?? '',
-        residence: record.residence ?? '',
-        dateOfDeath: toInputDate(record.dateOfDeath),
-        causeOfDeath: record.causeOfDeath ?? '',
-        placeOfBurial: record.placeOfBurial ?? '',
-        groomName: record.groomName ?? '',
-        brideName: record.brideName ?? '',
-        groomAge: record.groomAge ?? '',
-        brideAge: record.brideAge ?? '',
-        groomResidence: record.groomResidence ?? '',
-        brideResidence: record.brideResidence ?? '',
-        groomNationality: record.groomNationality ?? '',
-        brideNationality: record.brideNationality ?? '',
-        groomFatherName: record.groomFatherName ?? '',
-        brideFatherName: record.brideFatherName ?? '',
-        groomMotherName: record.groomMotherName ?? '',
-        brideMotherName: record.brideMotherName ?? ''
-      });
-    } else {
-      setIsEditing(false);
-      setEditId(null);
-      setFormData(initialFormState);
-    }
+  const handleOpenModal = () => {
+    setFormData(initialFormState);
     setIsModalOpen(true);
   };
 
@@ -138,8 +87,6 @@ const Records: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
-    setIsEditing(false);
-    setEditId(null);
   };
 
   const formatCoupleName = (groomName: string, brideName: string, fallback = '') => {
@@ -160,11 +107,7 @@ const Records: React.FC = () => {
         : formData.name
     };
     try {
-      if (isEditing && editId) {
-        await updateRecord({ ...payload, id: editId });
-      } else {
-        await addRecord(payload);
-      }
+      await addRecord(payload);
       handleCloseModal();
     } catch (error) {
       await alert({
@@ -482,14 +425,12 @@ const Records: React.FC = () => {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
+      {/* Add Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-8 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-8 max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
              <div className="flex justify-between items-center mb-6">
-               <h2 className="text-2xl font-bold text-gray-800">
-                 {isEditing ? 'Edit Record' : 'New Sacramental Record'}
-               </h2>
+               <h2 className="text-2xl font-bold text-gray-800">New Sacramental Record</h2>
                <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
                  <Icons.X size={24} />
                </button>
@@ -948,7 +889,7 @@ const Records: React.FC = () => {
                    type="submit" 
                    className="flex-1 bg-parish-blue text-white py-2.5 rounded-lg font-bold hover:bg-blue-800 transition"
                  >
-                   {isEditing ? 'Save Changes' : 'Create Record'}
+                   Create Record
                  </button>
                  <button 
                    type="button"
