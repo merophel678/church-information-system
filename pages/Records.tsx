@@ -18,13 +18,40 @@ const Records: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<SacramentRecord | null>(null);
-  
+
+  const parishPlaceDefault = 'Quasi Parish of Our Lady of the Miraculous Medal, Sabang, Borongan City';
   const initialFormState = {
     name: '',
     date: new Date().toISOString().split('T')[0],
     type: SacramentType.BAPTISM,
     officiant: '',
-    details: ''
+    details: '',
+    fatherName: '',
+    motherName: '',
+    birthDate: '',
+    birthPlace: '',
+    baptismDate: '',
+    baptismPlace: parishPlaceDefault,
+    sponsors: '',
+    registerBook: '',
+    registerPage: '',
+    registerLine: '',
+    residence: '',
+    dateOfDeath: '',
+    causeOfDeath: '',
+    placeOfBurial: '',
+    groomName: '',
+    brideName: '',
+    groomAge: '',
+    brideAge: '',
+    groomResidence: '',
+    brideResidence: '',
+    groomNationality: '',
+    brideNationality: '',
+    groomFatherName: '',
+    brideFatherName: '',
+    groomMotherName: '',
+    brideMotherName: ''
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -46,10 +73,11 @@ const Records: React.FC = () => {
     }
   };
 
-  const toInputDate = (value: string) => {
+  const toInputDate = (value?: string | null) => {
+    if (!value) return '';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-      return value;
+      return '';
     }
     return date.toISOString().split('T')[0];
   };
@@ -59,11 +87,37 @@ const Records: React.FC = () => {
       setIsEditing(true);
       setEditId(record.id);
       setFormData({
-        name: record.name,
+        name: record.name ?? '',
         date: toInputDate(record.date),
         type: record.type,
-        officiant: record.officiant,
-        details: record.details
+        officiant: record.officiant ?? '',
+        details: record.details ?? '',
+        fatherName: record.fatherName ?? '',
+        motherName: record.motherName ?? '',
+        birthDate: toInputDate(record.birthDate),
+        birthPlace: record.birthPlace ?? '',
+        baptismDate: toInputDate(record.baptismDate),
+        baptismPlace: record.baptismPlace ?? '',
+        sponsors: record.sponsors ?? '',
+        registerBook: record.registerBook ?? '',
+        registerPage: record.registerPage ?? '',
+        registerLine: record.registerLine ?? '',
+        residence: record.residence ?? '',
+        dateOfDeath: toInputDate(record.dateOfDeath),
+        causeOfDeath: record.causeOfDeath ?? '',
+        placeOfBurial: record.placeOfBurial ?? '',
+        groomName: record.groomName ?? '',
+        brideName: record.brideName ?? '',
+        groomAge: record.groomAge ?? '',
+        brideAge: record.brideAge ?? '',
+        groomResidence: record.groomResidence ?? '',
+        brideResidence: record.brideResidence ?? '',
+        groomNationality: record.groomNationality ?? '',
+        brideNationality: record.brideNationality ?? '',
+        groomFatherName: record.groomFatherName ?? '',
+        brideFatherName: record.brideFatherName ?? '',
+        groomMotherName: record.groomMotherName ?? '',
+        brideMotherName: record.brideMotherName ?? ''
       });
     } else {
       setIsEditing(false);
@@ -88,13 +142,28 @@ const Records: React.FC = () => {
     setEditId(null);
   };
 
+  const formatCoupleName = (groomName: string, brideName: string, fallback = '') => {
+    const groom = groomName.trim();
+    const bride = brideName.trim();
+    if (groom && bride) {
+      return `${groom} & ${bride}`;
+    }
+    return fallback.trim();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      name: formData.type === SacramentType.MARRIAGE
+        ? formatCoupleName(formData.groomName, formData.brideName, formData.name)
+        : formData.name
+    };
     try {
       if (isEditing && editId) {
-        await updateRecord({ ...formData, id: editId });
+        await updateRecord({ ...payload, id: editId });
       } else {
-        await addRecord(formData);
+        await addRecord(payload);
       }
       handleCloseModal();
     } catch (error) {
@@ -166,6 +235,26 @@ const Records: React.FC = () => {
       </section>
     );
   };
+
+  const isBaptism = formData.type === SacramentType.BAPTISM;
+  const isConfirmation = formData.type === SacramentType.CONFIRMATION;
+  const isMarriage = formData.type === SacramentType.MARRIAGE;
+  const isFuneral = formData.type === SacramentType.FUNERAL;
+  const recordDateLabel = isFuneral
+    ? 'Date of Burial'
+    : isMarriage
+      ? 'Date of Marriage'
+      : isConfirmation
+        ? 'Date of Confirmation'
+        : 'Date of Baptism';
+  const nameLabel = isFuneral
+    ? 'Deceased Name'
+    : isConfirmation
+      ? 'Candidate Name'
+      : 'Child Name';
+  const coupleName = formatCoupleName(formData.groomName, formData.brideName, formData.name);
+  const inputClassName = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none';
+  const labelClassName = 'block text-sm font-medium text-gray-700 mb-1';
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 relative">
@@ -406,64 +495,451 @@ const Records: React.FC = () => {
                </button>
              </div>
 
-             <form onSubmit={handleSubmit} className="space-y-4">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Type</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                  value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value as SacramentType})}
-                >
-                  {Object.values(SacramentType).map(type => (
-                    <option key={type} value={type}>{humanize(type)}</option>
-                  ))}
-                </select>
-              </div>
+             <form onSubmit={handleSubmit} className="space-y-6">
+               <div className="space-y-4">
+                 <div>
+                   <label className={labelClassName}>Sacrament Type</label>
+                  <select
+                    className={inputClassName}
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value as SacramentType})}
+                  >
+                    {Object.values(SacramentType).map(type => (
+                      <option key={type} value={type}>{humanize(type)}</option>
+                    ))}
+                  </select>
+                </div>
 
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Name</label>
-                 <input 
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                    placeholder="Full Name"
-                 />
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {isMarriage ? (
+                     <div className="md:col-span-2">
+                       <label className={labelClassName}>Couple Name</label>
+                       <input
+                         type="text"
+                         className={`${inputClassName} bg-gray-50`}
+                         value={coupleName}
+                         readOnly
+                         required
+                       />
+                       <p className="text-xs text-gray-500 mt-1">Auto-formatted from groom and bride names.</p>
+                     </div>
+                   ) : (
+                     <div className="md:col-span-2">
+                       <label className={labelClassName}>{nameLabel}</label>
+                       <input 
+                          type="text"
+                          className={inputClassName}
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          required
+                          placeholder="Full Name"
+                       />
+                     </div>
+                   )}
+                   <div>
+                     <label className={labelClassName}>{recordDateLabel}</label>
+                     <input 
+                        type="date"
+                        className={inputClassName}
+                        value={formData.date}
+                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                        required
+                     />
+                   </div>
+                   <div>
+                     <label className={labelClassName}>Officiant</label>
+                     <input 
+                        type="text"
+                        className={inputClassName}
+                        value={formData.officiant}
+                        onChange={(e) => setFormData({...formData, officiant: e.target.value})}
+                        required
+                        placeholder="e.g. Fr. Juan"
+                     />
+                   </div>
+                 </div>
                </div>
 
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                   <input 
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                      value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
-                      required
-                   />
+               {isBaptism && (
+                 <div className="space-y-4">
+                   <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Baptism Details</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                       <label className={labelClassName}>Birth Date</label>
+                       <input
+                         type="date"
+                         className={inputClassName}
+                         value={formData.birthDate}
+                         onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Birth Place</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.birthPlace}
+                         onChange={(e) => setFormData({...formData, birthPlace: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Father's Name</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.fatherName}
+                         onChange={(e) => setFormData({...formData, fatherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Mother's Name</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.motherName}
+                         onChange={(e) => setFormData({...formData, motherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div className="md:col-span-2">
+                       <label className={labelClassName}>Place of Baptism</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.baptismPlace}
+                         onChange={(e) => setFormData({...formData, baptismPlace: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div className="md:col-span-2">
+                       <label className={labelClassName}>Sponsors / Godparents</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.sponsors}
+                         onChange={(e) => setFormData({...formData, sponsors: e.target.value})}
+                         required
+                         placeholder="e.g. Carlos Dela Peña, Angela Ramos"
+                       />
+                     </div>
+                   </div>
                  </div>
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Officiant</label>
-                   <input 
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                      value={formData.officiant}
-                      onChange={(e) => setFormData({...formData, officiant: e.target.value})}
-                      required
-                      placeholder="e.g. Fr. Juan"
-                   />
+               )}
+
+               {isConfirmation && (
+                 <div className="space-y-4">
+                   <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Confirmation Details</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                       <label className={labelClassName}>Birth Date</label>
+                       <input
+                         type="date"
+                         className={inputClassName}
+                         value={formData.birthDate}
+                         onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Birth Place</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.birthPlace}
+                         onChange={(e) => setFormData({...formData, birthPlace: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Father's Name</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.fatherName}
+                         onChange={(e) => setFormData({...formData, fatherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Mother's Name</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.motherName}
+                         onChange={(e) => setFormData({...formData, motherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Date of Baptism</label>
+                       <input
+                         type="date"
+                         className={inputClassName}
+                         value={formData.baptismDate}
+                         onChange={(e) => setFormData({...formData, baptismDate: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Place of Baptism</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.baptismPlace}
+                         onChange={(e) => setFormData({...formData, baptismPlace: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div className="md:col-span-2">
+                       <label className={labelClassName}>Sponsors (comma-separated)</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.sponsors}
+                         onChange={(e) => setFormData({...formData, sponsors: e.target.value})}
+                         required
+                         placeholder="e.g. Carlos Dela Peña, Angela Ramos"
+                       />
+                     </div>
+                   </div>
+                 </div>
+               )}
+
+               {isMarriage && (
+                 <div className="space-y-4">
+                   <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Marriage Details</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                       <label className={labelClassName}>Groom Name</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.groomName}
+                         onChange={(e) => setFormData({...formData, groomName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Bride Name</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.brideName}
+                         onChange={(e) => setFormData({...formData, brideName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Groom Age</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.groomAge}
+                         onChange={(e) => setFormData({...formData, groomAge: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Bride Age</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.brideAge}
+                         onChange={(e) => setFormData({...formData, brideAge: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Groom Residence</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.groomResidence}
+                         onChange={(e) => setFormData({...formData, groomResidence: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Bride Residence</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.brideResidence}
+                         onChange={(e) => setFormData({...formData, brideResidence: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Groom Nationality</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.groomNationality}
+                         onChange={(e) => setFormData({...formData, groomNationality: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Bride Nationality</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.brideNationality}
+                         onChange={(e) => setFormData({...formData, brideNationality: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Groom's Father</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.groomFatherName}
+                         onChange={(e) => setFormData({...formData, groomFatherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Groom's Mother</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.groomMotherName}
+                         onChange={(e) => setFormData({...formData, groomMotherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Bride's Father</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.brideFatherName}
+                         onChange={(e) => setFormData({...formData, brideFatherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Bride's Mother</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.brideMotherName}
+                         onChange={(e) => setFormData({...formData, brideMotherName: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div className="md:col-span-2">
+                       <label className={labelClassName}>Witnesses</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.sponsors}
+                         onChange={(e) => setFormData({...formData, sponsors: e.target.value})}
+                         required
+                         placeholder="e.g. Ana Irene, Nelson Lisaca"
+                       />
+                     </div>
+                   </div>
+                 </div>
+               )}
+
+               {isFuneral && (
+                 <div className="space-y-4">
+                   <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Funeral Details</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                       <label className={labelClassName}>Residence</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.residence}
+                         onChange={(e) => setFormData({...formData, residence: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Date of Death</label>
+                       <input
+                         type="date"
+                         className={inputClassName}
+                         value={formData.dateOfDeath}
+                         onChange={(e) => setFormData({...formData, dateOfDeath: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Cause of Death</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.causeOfDeath}
+                         onChange={(e) => setFormData({...formData, causeOfDeath: e.target.value})}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <label className={labelClassName}>Place of Burial</label>
+                       <input
+                         type="text"
+                         className={inputClassName}
+                         value={formData.placeOfBurial}
+                         onChange={(e) => setFormData({...formData, placeOfBurial: e.target.value})}
+                         required
+                       />
+                     </div>
+                   </div>
+                 </div>
+               )}
+
+               <div className="space-y-3">
+                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Register Information</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                   <div>
+                     <label className={labelClassName}>Book No.</label>
+                     <input
+                       type="text"
+                       className={inputClassName}
+                       value={formData.registerBook}
+                       onChange={(e) => setFormData({...formData, registerBook: e.target.value})}
+                       required
+                     />
+                   </div>
+                   <div>
+                     <label className={labelClassName}>Page No.</label>
+                     <input
+                       type="text"
+                       className={inputClassName}
+                       value={formData.registerPage}
+                       onChange={(e) => setFormData({...formData, registerPage: e.target.value})}
+                       required
+                     />
+                   </div>
+                   <div>
+                     <label className={labelClassName}>Line No.</label>
+                     <input
+                       type="text"
+                       className={inputClassName}
+                       value={formData.registerLine}
+                       onChange={(e) => setFormData({...formData, registerLine: e.target.value})}
+                       required
+                     />
+                   </div>
                  </div>
                </div>
 
                <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Details (Parents, Sponsors, etc.)</label>
+                 <label className={labelClassName}>Notes / Additional Details</label>
                  <textarea 
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    className={inputClassName}
                     value={formData.details}
                     onChange={(e) => setFormData({...formData, details: e.target.value})}
                     placeholder="Additional information..."
+                    required
                  />
                </div>
 
