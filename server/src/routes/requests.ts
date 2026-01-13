@@ -215,6 +215,13 @@ router.put('/:id', authenticate, async (req, res) => {
   if (!existing) {
     return res.status(404).json({ message: 'Request not found' });
   }
+  if (
+    existing.status === RequestStatus.COMPLETED &&
+    updates.status &&
+    updates.status !== RequestStatus.COMPLETED
+  ) {
+    return res.status(400).json({ message: 'Completed requests cannot be reopened.' });
+  }
 
   const updated = await prisma.serviceRequest.update({
     where: { id },

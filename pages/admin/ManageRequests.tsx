@@ -555,8 +555,9 @@ const ManageRequests: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select 
-                      className={`text-xs font-semibold rounded-full px-2 py-1 border-none outline-none cursor-pointer ${getStatusColor(req.status)}`}
+                      className={`text-xs font-semibold rounded-full px-2 py-1 border-none outline-none ${getStatusColor(req.status)} ${req.status === RequestStatus.COMPLETED ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                       value={req.status}
+                      disabled={req.status === RequestStatus.COMPLETED}
                       onChange={(e) => handleStatusChangeRequest(req, e.target.value as RequestStatus)}
                     >
                       {Object.values(RequestStatus).map(status => (

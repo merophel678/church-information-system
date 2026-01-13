@@ -147,12 +147,18 @@ const Records: React.FC = () => {
             <p className="text-gray-500 text-sm">Manage baptism, confirmation, and marriage entries.</p>
            </div>
         </div>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="bg-parish-blue text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800 transition"
-        >
-          <Icons.Plus size={18} /> Add Record
-        </button>
+        {showArchived ? (
+          <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg">
+            Viewing archived records
+          </div>
+        ) : (
+          <button 
+            onClick={() => handleOpenModal()}
+            className="bg-parish-blue text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800 transition"
+          >
+            <Icons.Plus size={18} /> Add Record
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -178,14 +184,14 @@ const Records: React.FC = () => {
               <option key={type} value={type}>{humanize(type)}</option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+          <label className={`flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-lg border ${showArchived ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-white text-gray-600 border-gray-200'}`}>
             <input
               type="checkbox"
               checked={showArchived}
               onChange={(e) => setShowArchived(e.target.checked)}
               className="rounded text-parish-blue focus:ring-parish-blue"
             />
-            Show archived
+            <Icons.Archive size={14} /> Show archived
           </label>
         </div>
 
@@ -227,27 +233,20 @@ const Records: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(record.date)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.officiant}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
-                    <button 
-                      onClick={() => handleOpenModal(record)}
-                      className="text-parish-blue hover:text-blue-900 disabled:opacity-40"
-                      disabled={record.isArchived}
-                    >
-                      Edit
-                    </button>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {record.isArchived ? (
                       <button 
                         onClick={() => handleRestore(record)}
-                        className="text-green-600 hover:text-green-900"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
                       >
-                        Restore
+                        <Icons.CheckCircle size={14} /> Restore
                       </button>
                     ) : (
                       <button 
                         onClick={() => handleArchive(record)}
-                        className="text-red-600 hover:text-red-900"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
                       >
-                        Archive
+                        <Icons.Archive size={14} /> Archive
                       </button>
                     )}
                   </td>
