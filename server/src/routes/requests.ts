@@ -367,6 +367,13 @@ router.put('/:id', authenticate, async (req, res) => {
   ) {
     return res.status(400).json({ message: 'Completed requests cannot be reopened.' });
   }
+  if (
+    existing.status === RequestStatus.REJECTED &&
+    updates.status &&
+    updates.status !== RequestStatus.REJECTED
+  ) {
+    return res.status(400).json({ message: 'Rejected requests cannot be reopened.' });
+  }
 
   const updated = await prisma.serviceRequest.update({
     where: { id },
