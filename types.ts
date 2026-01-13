@@ -16,6 +16,7 @@ export interface SacramentRecord {
   motherName?: string;
   birthDate?: string;
   birthPlace?: string;
+  baptismDate?: string;
   baptismPlace?: string;
   sponsors?: string;
   registerBook?: string;
@@ -85,6 +86,8 @@ export interface ServiceRequest {
   contactInfo: string; // Email or Phone
   preferredDate?: string; // Relevant for sacraments
   details: string; // Purpose or additional info
+  confirmationCandidateName?: string;
+  confirmationCandidateBirthDate?: string;
   certificateRecipientName?: string;
   certificateRecipientBirthDate?: string;
   requesterRelationship?: string;

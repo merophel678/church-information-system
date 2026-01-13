@@ -32,7 +32,9 @@ const CertificateRegistry: React.FC = () => {
       const raw = err?.message || '';
       const friendly = raw.includes('No baptism record linked')
         ? 'Cannot generate: no baptism record is linked to this certificate. Please link/create the baptism record for this person and retry.'
-        : 'Unable to generate certificate right now. Please verify the linked baptism record and try again.';
+        : raw.includes('No confirmation record linked')
+          ? 'Cannot generate: no confirmation record is linked to this certificate. Please complete the confirmation record and retry.'
+        : 'Unable to generate certificate right now. Please verify the linked sacrament record and try again.';
       setGenerateError(friendly);
     } finally {
       setGeneratingId(null);
@@ -172,9 +174,12 @@ const CertificateRegistry: React.FC = () => {
                     {cert.status === CertificateStatus.PENDING_UPLOAD ? (
                       <button
                         onClick={() => handleGenerate(cert)}
-                        disabled={generatingId === cert.id || !cert.type.toLowerCase().includes('baptism')}
+                        disabled={
+                          generatingId === cert.id ||
+                          !/baptism|confirmation/.test(cert.type.toLowerCase())
+                        }
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={!cert.type.toLowerCase().includes('baptism') ? 'Generation template not available yet for this type' : ''}
+                        title={!/baptism|confirmation/.test(cert.type.toLowerCase()) ? 'Generation template not available yet for this type' : ''}
                       >
                         {generatingId === cert.id ? (
                           <>

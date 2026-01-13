@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Icons } from '../components/Icons';
 import { useParish } from '../context/ParishContext';
-import { RequestCategory } from '../types';
+import { RequestCategory, RequestStatus } from '../types';
 
 const RequestService: React.FC = () => {
   const { addRequest } = useParish();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [rejectionMessage, setRejectionMessage] = useState('');
   const today = new Date().toISOString().split('T')[0];
   
   const [category, setCategory] = useState<RequestCategory>(RequestCategory.SACRAMENT);
@@ -20,7 +21,9 @@ const RequestService: React.FC = () => {
     details: '',
     certificateRecipientName: '',
     certificateRecipientBirthDate: '',
-    requesterRelationship: ''
+    requesterRelationship: '',
+    confirmationCandidateName: '',
+    confirmationCandidateBirthDate: ''
   });
 
   const handleCategoryChange = (newCategory: RequestCategory) => {
@@ -31,6 +34,11 @@ const RequestService: React.FC = () => {
     } else {
       setServiceType('Baptismal Certificate');
     }
+    setFormData((prev) => ({
+      ...prev,
+      confirmationCandidateName: '',
+      confirmationCandidateBirthDate: ''
+    }));
   };
 
   const isValidContact = (value: string) => {
@@ -43,6 +51,7 @@ const RequestService: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setRejectionMessage('');
     setIsSubmitting(true);
     if (!isValidContact(formData.contactInfo)) {
       setError('Enter a valid email or PH mobile (+63 or 09 followed by 9 digits).');
@@ -59,18 +68,31 @@ const RequestService: React.FC = () => {
       setIsSubmitting(false);
       return;
     }
+    const isConfirmation = category === RequestCategory.SACRAMENT && serviceType.toLowerCase().includes('confirmation');
+    if (isConfirmation) {
+      if (!formData.confirmationCandidateName.trim() || !formData.confirmationCandidateBirthDate) {
+        setError('Confirmation candidate name and birth date are required.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
     try {
-      await addRequest({
+      const created = await addRequest({
         category,
         serviceType,
         requesterName: formData.requesterName,
         contactInfo: formData.contactInfo,
         preferredDate: formData.preferredDate,
         details: formData.details,
+        confirmationCandidateName: isConfirmation ? formData.confirmationCandidateName : undefined,
+        confirmationCandidateBirthDate: isConfirmation ? formData.confirmationCandidateBirthDate : undefined,
         certificateRecipientName: category === RequestCategory.CERTIFICATE ? formData.certificateRecipientName : undefined,
         certificateRecipientBirthDate: category === RequestCategory.CERTIFICATE ? formData.certificateRecipientBirthDate : undefined,
         requesterRelationship: category === RequestCategory.CERTIFICATE ? formData.requesterRelationship : undefined
       });
+      if (created.status === RequestStatus.REJECTED) {
+        setRejectionMessage(created.adminNotes || 'Your request was received but cannot be processed at this time.');
+      }
       setSubmitted(true);
       window.scrollTo(0, 0);
     } catch (err) {
@@ -88,8 +110,10 @@ const RequestService: React.FC = () => {
         </div>
         <h2 className="text-3xl font-serif font-bold text-gray-900 mb-4">Request Submitted</h2>
         <p className="text-gray-600 mb-8 text-lg">
-          Thank you for your request. Our parish staff has been notified and will review your application. 
-          We will contact you via {formData.contactInfo} regarding the next steps.
+          {rejectionMessage ? rejectionMessage : 'Thank you for your request. Our parish staff has been notified and will review your application.'}
+          {!rejectionMessage && (
+            <> We will contact you via {formData.contactInfo} regarding the next steps.</>
+          )}
         </p>
         <button 
           onClick={() => {
@@ -101,7 +125,9 @@ const RequestService: React.FC = () => {
               details: '',
               certificateRecipientName: '',
               certificateRecipientBirthDate: '',
-              requesterRelationship: ''
+              requesterRelationship: '',
+              confirmationCandidateName: '',
+              confirmationCandidateBirthDate: ''
             });
           }}
           className="bg-parish-blue text-white px-8 py-3 rounded-full font-medium hover:bg-blue-800 transition"
@@ -168,7 +194,17 @@ const RequestService: React.FC = () => {
               <select 
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none bg-white"
                 value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setServiceType(value);
+                  if (!value.toLowerCase().includes('confirmation')) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      confirmationCandidateName: '',
+                      confirmationCandidateBirthDate: ''
+                    }));
+                  }
+                }}
               >
                 {category === RequestCategory.SACRAMENT ? (
                   <>
@@ -255,23 +291,50 @@ const RequestService: React.FC = () => {
             )}
 
             {category === RequestCategory.SACRAMENT && (
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
-                <input 
-                  type="date" 
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                  min={today}
-                  value={formData.preferredDate}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData({...formData, preferredDate: value});
-                    if (error && value >= today) {
-                      setError('');
-                    }
-                  }}
-                />
-                <p className="text-xs text-gray-500 mt-1">Subject to availability and confirmation by the parish office.</p>
-              </div>
+              <>
+                {serviceType.toLowerCase().includes('confirmation') && (
+                  <>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Confirmation Candidate (Full Name)</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Full name of the candidate"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.confirmationCandidateName}
+                        onChange={(e) => setFormData({...formData, confirmationCandidateName: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Candidate Birth Date</label>
+                      <input 
+                        type="date" 
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.confirmationCandidateBirthDate}
+                        onChange={(e) => setFormData({...formData, confirmationCandidateBirthDate: e.target.value})}
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
+                  <input 
+                    type="date" 
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    min={today}
+                    value={formData.preferredDate}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({...formData, preferredDate: value});
+                      if (error && value >= today) {
+                        setError('');
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Subject to availability and confirmation by the parish office.</p>
+                </div>
+              </>
             )}
 
             <div className="md:col-span-2">

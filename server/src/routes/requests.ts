@@ -29,6 +29,8 @@ router.post('/', async (req, res) => {
     contactInfo,
     preferredDate,
     details,
+    confirmationCandidateName,
+    confirmationCandidateBirthDate,
     certificateRecipientName,
     certificateRecipientBirthDate,
     requesterRelationship
@@ -38,8 +40,33 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
+  const normalizedService = String(serviceType || '').toLowerCase();
+  const isConfirmationRequest =
+    category === RequestCategory.SACRAMENT && normalizedService.includes('confirmation');
+
+  if (isConfirmationRequest && (!confirmationCandidateName || !confirmationCandidateBirthDate)) {
+    return res.status(400).json({ message: 'Confirmation candidate name and birth date are required' });
+  }
+
   if (category === RequestCategory.CERTIFICATE && !certificateRecipientName) {
     return res.status(400).json({ message: 'Certificate recipient name is required for certificate requests' });
+  }
+
+  let confirmationStatus: RequestStatus | undefined;
+  let confirmationNote: string | undefined;
+  if (isConfirmationRequest) {
+    const match = await prisma.sacramentRecord.findFirst({
+      where: {
+        type: SacramentType.BAPTISM,
+        isArchived: false,
+        name: confirmationCandidateName,
+        birthDate: new Date(confirmationCandidateBirthDate)
+      }
+    });
+    if (!match) {
+      confirmationStatus = RequestStatus.REJECTED;
+      confirmationNote = `No matching baptism record found for ${confirmationCandidateName} (${confirmationCandidateBirthDate}).`;
+    }
   }
 
   const request = await prisma.serviceRequest.create({
@@ -50,9 +77,13 @@ router.post('/', async (req, res) => {
       contactInfo,
       preferredDate,
       details,
+      confirmationCandidateName,
+      confirmationCandidateBirthDate: confirmationCandidateBirthDate ? new Date(confirmationCandidateBirthDate) : undefined,
       certificateRecipientName,
       certificateRecipientBirthDate: certificateRecipientBirthDate ? new Date(certificateRecipientBirthDate) : undefined,
-      requesterRelationship
+      requesterRelationship,
+      status: confirmationStatus ?? RequestStatus.PENDING,
+      adminNotes: confirmationNote
     }
   });
 
@@ -74,6 +105,8 @@ router.put('/:id', authenticate, async (req, res) => {
     certificateRecipientName?: string;
     certificateRecipientBirthDate?: string;
     requesterRelationship?: string;
+    confirmationCandidateName?: string;
+    confirmationCandidateBirthDate?: string;
   }> & {
     recordDetails?: {
       name?: string;
@@ -85,6 +118,7 @@ router.put('/:id', authenticate, async (req, res) => {
       motherName?: string;
       birthDate?: string;
       birthPlace?: string;
+      baptismDate?: string;
       baptismPlace?: string;
       sponsors?: string;
       registerBook?: string;
@@ -102,6 +136,9 @@ router.put('/:id', authenticate, async (req, res) => {
     where: { id },
     data: {
       ...updates,
+      confirmationCandidateBirthDate: updates.confirmationCandidateBirthDate
+        ? new Date(updates.confirmationCandidateBirthDate)
+        : undefined,
       certificateRecipientBirthDate: updates.certificateRecipientBirthDate
         ? new Date(updates.certificateRecipientBirthDate)
         : undefined
@@ -140,6 +177,7 @@ router.put('/:id', authenticate, async (req, res) => {
           motherName: recordDetails?.motherName,
           birthDate: recordDetails?.birthDate ? new Date(recordDetails.birthDate) : undefined,
           birthPlace: recordDetails?.birthPlace,
+          baptismDate: recordDetails?.baptismDate ? new Date(recordDetails.baptismDate) : undefined,
           baptismPlace: recordDetails?.baptismPlace,
           sponsors: recordDetails?.sponsors,
           registerBook: recordDetails?.registerBook,

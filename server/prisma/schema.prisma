@@ -102,6 +102,8 @@ model ServiceRequest {
   contactInfo        String
   preferredDate      String?
   details            String
+  confirmationCandidateName       String?
+  confirmationCandidateBirthDate  DateTime?
   certificateRecipientName       String?
   certificateRecipientBirthDate  DateTime?
   requesterRelationship          String?
@@ -126,6 +128,7 @@ model SacramentRecord {
   motherName  String?
   birthDate   DateTime?
   birthPlace  String?
+  baptismDate DateTime?
   baptismPlace String?
   sponsors    String?
   registerBook String?

@@ -24,7 +24,7 @@ interface ParishContextType {
   addDonation: (donation: Omit<Donation, 'id'>) => Promise<void>;
   updateDonation: (donation: Donation) => Promise<void>;
   deleteDonation: (id: string) => Promise<void>;
-  addRequest: (request: Omit<ServiceRequest, 'id' | 'status' | 'submissionDate'>) => Promise<void>;
+  addRequest: (request: Omit<ServiceRequest, 'id' | 'status' | 'submissionDate'>) => Promise<ServiceRequest>;
   updateRequest: (id: string, updates: Partial<ServiceRequest> & { recordDetails?: SacramentRecordDetails }) => Promise<void>;
   deleteRequest: (id: string) => Promise<void>;
   issueCertificate: (requestId: string, details: { deliveryMethod: DeliveryMethod; notes: string; issuedBy: string }) => Promise<void>;
@@ -204,6 +204,7 @@ export const ParishProvider: React.FC<ParishProviderProps> = ({ children, authTo
     if (authToken) {
       setRequests((prev) => [created, ...prev]);
     }
+    return created;
   };
 
   const updateRequest = async (id: string, updates: Partial<ServiceRequest> & { recordDetails?: SacramentRecordDetails }) => {

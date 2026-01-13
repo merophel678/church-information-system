@@ -78,6 +78,8 @@ export const api = {
     contactInfo: string;
     preferredDate?: string;
     details: string;
+    confirmationCandidateName?: string;
+    confirmationCandidateBirthDate?: string;
     certificateRecipientName?: string;
     certificateRecipientBirthDate?: string;
     requesterRelationship?: string;
