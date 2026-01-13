@@ -71,6 +71,9 @@ const ManageRequests: React.FC = () => {
   });
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
 
+  const formatCoupleName = (groom?: string, bride?: string) =>
+    [groom?.trim(), bride?.trim()].filter(Boolean).join(' & ');
+
   const hasCertificate = (requestId: string) =>
     issuedCertificates.some((cert) => cert.requestId === requestId);
 
@@ -147,9 +150,6 @@ const ManageRequests: React.FC = () => {
 
   const normalizeName = (value?: string) =>
     (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
-
-  const formatCoupleName = (groom?: string, bride?: string) =>
-    [groom?.trim(), bride?.trim()].filter(Boolean).join(' & ');
 
   const findBaptismRecordForConfirmation = (req: ServiceRequest) => {
     const candidateName = normalizeName(req.confirmationCandidateName);
