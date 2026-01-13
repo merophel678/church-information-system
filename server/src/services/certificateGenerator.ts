@@ -442,11 +442,9 @@ const renderConfirmationTemplate = (data: ConfirmationTemplateData): string => {
       line-height: 1.8;
       margin-bottom: 20px;
     }
-    .blank-line {
-      display: inline-block;
-      border-bottom: 1px solid black;
-      min-width: 50px;
-      text-align: center;
+    .inline-value {
+      font-weight: bold;
+      text-transform: uppercase;
     }
     .italic-bold {
       font-style: italic;
@@ -507,11 +505,11 @@ const renderConfirmationTemplate = (data: ConfirmationTemplateData): string => {
       <div style="text-align: center; margin-bottom: 20px;">
         was solemnly CONFIRMED according to the Rites of the Roman Catholic Church
       </div>
-      on the <span class="blank-line" style="width: 80px;">${confirmationDay}</span> day of <span class="blank-line" style="width: 120px;">${confirmationMonth}</span> 20<span class="blank-line" style="width: 40px;">${confirmationYear}</span>, at the <span class="italic-bold">${parishName}</span>, ${parishLocation}, by the <span class="italic-bold">${priestName}</span>. The sponsors being: <span class="blank-line" style="width: 150px;">${sponsorsPrimary}</span> and <span class="blank-line" style="width: 150px;">${sponsorsSecondary}</span>, as it appears in the CONFIRMATION REGISTER, Book No: <span class="blank-line" style="width: 60px;">${registerBook}</span>, Page No: <span class="blank-line" style="width: 60px;">${registerPage}</span>, Line No. <span class="blank-line" style="width: 60px;">${registerLine}</span>.
+      on the <span class="inline-value">${confirmationDay}</span> day of <span class="inline-value">${confirmationMonth}</span> <span class="inline-value">20${confirmationYear}</span>, at the <span class="italic-bold">${parishName}</span>, ${parishLocation}, by the <span class="italic-bold">${priestName}</span>. The sponsors being: <span class="inline-value">${sponsorsPrimary}</span> and <span class="inline-value">${sponsorsSecondary}</span>, as it appears in the CONFIRMATION REGISTER, Book No: <span class="inline-value">${registerBook}</span>, Page No: <span class="inline-value">${registerPage}</span>, Line No. <span class="inline-value">${registerLine}</span>.
     </div>
 
     <div class="body-text">
-      Given this <span class="blank-line" style="width: 80px;">${issueDay}</span> day of <span class="blank-line" style="width: 120px;">${issueMonth}</span> 20<span class="blank-line" style="width: 40px;">${issueYear}</span>, at the ${parishOfficeLocation}.
+      Given this <span class="inline-value">${issueDay}</span> day of <span class="inline-value">${issueMonth}</span> <span class="inline-value">20${issueYear}</span>, at the ${parishOfficeLocation}.
     </div>
 
     <div class="footer">
