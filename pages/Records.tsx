@@ -17,6 +17,7 @@ const Records: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<SacramentRecord | null>(null);
   
   const initialFormState = {
     name: '',
@@ -70,6 +71,14 @@ const Records: React.FC = () => {
       setFormData(initialFormState);
     }
     setIsModalOpen(true);
+  };
+
+  const handleOpenDetails = (record: SacramentRecord) => {
+    setSelectedRecord(record);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedRecord(null);
   };
 
   const handleCloseModal = () => {
@@ -131,6 +140,31 @@ const Records: React.FC = () => {
         message: 'Please try again shortly.'
       });
     }
+  };
+
+  const renderField = (label: string, value?: string | null) => {
+    if (value == null || (typeof value === 'string' && value.trim() === '')) {
+      return null;
+    }
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4">
+        <span className="text-xs uppercase tracking-wide text-gray-500">{label}</span>
+        <span className="text-sm text-gray-900 sm:text-right break-words">{value}</span>
+      </div>
+    );
+  };
+
+  const renderSection = (title: string, fields: Array<JSX.Element | null>) => {
+    const visible = fields.filter((field): field is JSX.Element => field !== null);
+    if (!visible.length) return null;
+    return (
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{title}</h3>
+        <div className="space-y-3">
+          {visible}
+        </div>
+      </section>
+    );
   };
 
   return (
@@ -210,7 +244,11 @@ const Records: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRecords.map((record) => (
-                <tr key={record.id} className="hover:bg-blue-50 transition">
+                <tr
+                  key={record.id}
+                  className="hover:bg-blue-50 transition cursor-pointer"
+                  onClick={() => handleOpenDetails(record)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{record.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{record.name}</div>
@@ -236,14 +274,20 @@ const Records: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {record.isArchived ? (
                       <button 
-                        onClick={() => handleRestore(record)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleRestore(record);
+                        }}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
                       >
                         <Icons.CheckCircle size={14} /> Restore
                       </button>
                     ) : (
                       <button 
-                        onClick={() => handleArchive(record)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleArchive(record);
+                        }}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
                       >
                         <Icons.Archive size={14} /> Archive
@@ -263,6 +307,90 @@ const Records: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Details Modal */}
+      {selectedRecord && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full p-8 animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-bold text-gray-800">Record Details</h2>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getBadgeColor(selectedRecord.type)}`}>
+                    {humanize(selectedRecord.type)}
+                  </span>
+                  {selectedRecord.isArchived && (
+                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                      Archived
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-1">Record #{selectedRecord.id}</p>
+              </div>
+              <button onClick={handleCloseDetails} className="text-gray-400 hover:text-gray-600">
+                <Icons.X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+              {renderSection('Overview', [
+                renderField('Recipient', selectedRecord.name),
+                renderField('Sacrament Date', formatDate(selectedRecord.date)),
+                renderField('Officiant', selectedRecord.officiant),
+                renderField('Notes', selectedRecord.details)
+              ])}
+
+              {renderSection('Personal Info', [
+                renderField('Birth Date', formatDate(selectedRecord.birthDate)),
+                renderField('Birth Place', selectedRecord.birthPlace),
+                renderField("Father's Name", selectedRecord.fatherName),
+                renderField("Mother's Name", selectedRecord.motherName)
+              ])}
+
+              {renderSection('Baptism Details', [
+                renderField('Baptism Date', formatDate(selectedRecord.baptismDate)),
+                renderField('Baptism Place', selectedRecord.baptismPlace),
+                renderField('Sponsors', selectedRecord.sponsors)
+              ])}
+
+              {renderSection('Marriage Details', [
+                renderField('Groom Name', selectedRecord.groomName),
+                renderField('Bride Name', selectedRecord.brideName),
+                renderField('Groom Age', selectedRecord.groomAge),
+                renderField('Bride Age', selectedRecord.brideAge),
+                renderField('Groom Residence', selectedRecord.groomResidence),
+                renderField('Bride Residence', selectedRecord.brideResidence),
+                renderField('Groom Nationality', selectedRecord.groomNationality),
+                renderField('Bride Nationality', selectedRecord.brideNationality),
+                renderField("Groom's Father", selectedRecord.groomFatherName),
+                renderField("Groom's Mother", selectedRecord.groomMotherName),
+                renderField("Bride's Father", selectedRecord.brideFatherName),
+                renderField("Bride's Mother", selectedRecord.brideMotherName),
+                renderField('Witnesses', selectedRecord.type === SacramentType.MARRIAGE ? selectedRecord.sponsors : undefined)
+              ])}
+
+              {renderSection('Funeral Details', [
+                renderField('Residence', selectedRecord.residence),
+                renderField('Date of Death', formatDate(selectedRecord.dateOfDeath)),
+                renderField('Cause of Death', selectedRecord.causeOfDeath),
+                renderField('Place of Burial', selectedRecord.placeOfBurial)
+              ])}
+
+              {renderSection('Register Info', [
+                renderField('Book No.', selectedRecord.registerBook),
+                renderField('Page No.', selectedRecord.registerPage),
+                renderField('Line No.', selectedRecord.registerLine)
+              ])}
+
+              {selectedRecord.isArchived && renderSection('Archive Info', [
+                renderField('Archived At', formatDate(selectedRecord.archivedAt)),
+                renderField('Archived By', selectedRecord.archivedBy),
+                renderField('Reason', selectedRecord.archiveReason)
+              ])}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
