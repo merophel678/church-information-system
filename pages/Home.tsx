@@ -60,9 +60,9 @@ const Home: React.FC = () => {
       <section className="py-16 bg-parish-silver">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition border-t-4 border-parish-blue">
-              <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4 text-parish-blue">
-                <Icons.BookOpen size={24} />
+            <div className="group relative bg-gradient-to-br from-white via-white to-slate-50 p-8 sm:p-9 rounded-xl border border-slate-100 border-l-4 border-l-parish-blue shadow-sm transition hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-200">
+              <div className="bg-blue-100/80 w-11 h-11 rounded-lg flex items-center justify-center mb-4 text-parish-blue transition group-hover:bg-blue-100 group-hover:shadow-sm">
+                <Icons.BookOpen size={22} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Sacraments</h3>
               <p className="text-gray-600">
@@ -70,9 +70,9 @@ const Home: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition border-t-4 border-parish-pink">
-              <div className="bg-pink-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4 text-parish-pink">
-                <Icons.Users size={24} />
+            <div className="group relative bg-gradient-to-br from-white via-white to-rose-50/70 p-8 sm:p-9 rounded-xl border border-slate-100 border-l-4 border-l-parish-pink shadow-sm transition hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-200">
+              <div className="bg-pink-100/80 w-11 h-11 rounded-lg flex items-center justify-center mb-4 text-parish-pink transition group-hover:bg-pink-100 group-hover:shadow-sm">
+                <Icons.Users size={22} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Community</h3>
               <p className="text-gray-600">
@@ -80,9 +80,9 @@ const Home: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition border-t-4 border-yellow-500">
-              <div className="bg-yellow-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4 text-yellow-600">
-                <Icons.FileText size={24} />
+            <div className="group relative bg-gradient-to-br from-white via-white to-amber-50/70 p-8 sm:p-9 rounded-xl border border-slate-100 border-l-4 border-l-yellow-500 shadow-sm transition hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-200">
+              <div className="bg-yellow-100/80 w-11 h-11 rounded-lg flex items-center justify-center mb-4 text-yellow-600 transition group-hover:bg-yellow-100 group-hover:shadow-sm">
+                <Icons.FileText size={22} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Parish Office</h3>
               <p className="text-gray-600">
