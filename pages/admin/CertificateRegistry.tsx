@@ -11,13 +11,102 @@ const CertificateRegistry: React.FC = () => {
   const [downloadError, setDownloadError] = useState('');
   const [generateError, setGenerateError] = useState('');
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [dateFilter, setDateFilter] = useState('ALL');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
 
-  const filteredCertificates = issuedCertificates.filter((cert) =>
-    [cert.recipientName, cert.requesterName, cert.type]
+  const searchLower = searchTerm.toLowerCase();
+
+  const parseDateInput = (value: string, endOfDay = false) => {
+    if (!value) return null;
+    const suffix = endOfDay ? 'T23:59:59.999' : 'T00:00:00';
+    const date = new Date(`${value}${suffix}`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const matchesType = (type: string) => {
+    if (typeFilter === 'ALL') return true;
+    const normalized = type.toLowerCase();
+    if (typeFilter === 'BAPTISM') return normalized.includes('baptism');
+    if (typeFilter === 'CONFIRMATION') return normalized.includes('confirmation');
+    if (typeFilter === 'MARRIAGE') return normalized.includes('marriage');
+    if (typeFilter === 'DEATH') {
+      return normalized.includes('death') || normalized.includes('funeral') || normalized.includes('burial');
+    }
+    return true;
+  };
+
+  const matchesStatus = (status: CertificateStatus) => {
+    if (statusFilter === 'ALL') return true;
+    if (statusFilter === 'PENDING') return status === CertificateStatus.PENDING_UPLOAD;
+    if (statusFilter === 'GENERATED') return status === CertificateStatus.UPLOADED;
+    return true;
+  };
+
+  const matchesDate = (value: string) => {
+    if (dateFilter === 'ALL') return true;
+    const issued = new Date(value);
+    if (Number.isNaN(issued.getTime())) return true;
+    const now = new Date();
+    if (dateFilter === 'LAST_7_DAYS') {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      return issued >= start && issued <= now;
+    }
+    if (dateFilter === 'LAST_30_DAYS') {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 30);
+      return issued >= start && issued <= now;
+    }
+    if (dateFilter === 'CUSTOM') {
+      const start = parseDateInput(customStart);
+      const end = parseDateInput(customEnd, true);
+      if (start && end && start > end) {
+        return false;
+      }
+      if (start && issued < start) return false;
+      if (end && issued > end) return false;
+      return true;
+    }
+    return true;
+  };
+
+  const filteredCertificates = issuedCertificates.filter((cert) => {
+    const matchesSearch = [cert.recipientName, cert.requesterName, cert.type]
       .join(' ')
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+      .includes(searchLower);
+    return (
+      matchesSearch &&
+      matchesType(cert.type) &&
+      matchesStatus(cert.status) &&
+      matchesDate(cert.dateIssued)
+    );
+  });
+  const hasActiveFilters =
+    searchTerm.trim() ||
+    typeFilter !== 'ALL' ||
+    statusFilter !== 'ALL' ||
+    dateFilter !== 'ALL' ||
+    customStart ||
+    customEnd;
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTypeFilter('ALL');
+    setStatusFilter('ALL');
+    setDateFilter('ALL');
+    setCustomStart('');
+    setCustomEnd('');
+  };
+
+  const statusChips = [
+    { label: 'All', value: 'ALL' },
+    { label: 'Pending PDFs', value: 'PENDING' },
+    { label: 'Generated', value: 'GENERATED' }
+  ];
 
   const pendingUploads = issuedCertificates.filter((cert) => cert.status === CertificateStatus.PENDING_UPLOAD).length;
   const completedUploads = issuedCertificates.filter((cert) => cert.status === CertificateStatus.UPLOADED).length;
@@ -117,22 +206,111 @@ const CertificateRegistry: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row gap-4 justify-between items-center">
-          <div className="relative flex-1 w-full">
-            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search by recipient, requester, or type..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-parish-blue focus:border-parish-blue outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <div className="p-4 border-b border-gray-200 bg-gray-50 space-y-3">
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div className="relative flex-1 w-full">
+              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search by recipient, requester, or type..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-parish-blue focus:border-parish-blue outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {(downloadError || generateError) && (
+              <div className="text-sm text-red-600 flex items-center gap-2">
+                <Icons.AlertTriangle size={16} /> {downloadError || generateError}
+              </div>
+            )}
           </div>
-          {(downloadError || generateError) && (
-            <div className="text-sm text-red-600 flex items-center gap-2">
-              <Icons.AlertTriangle size={16} /> {downloadError || generateError}
+          <div className="flex flex-col md:flex-row gap-3">
+            <select
+              className="w-full md:w-48 border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="ALL">All Types</option>
+              <option value="BAPTISM">Baptism</option>
+              <option value="CONFIRMATION">Confirmation</option>
+              <option value="MARRIAGE">Marriage</option>
+              <option value="DEATH">Death</option>
+            </select>
+
+            <select
+              className="w-full md:w-48 border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">All Status</option>
+              <option value="PENDING">Pending PDF</option>
+              <option value="GENERATED">Generated</option>
+            </select>
+
+            <select
+              className="w-full md:w-56 border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            >
+              <option value="ALL">All Dates</option>
+              <option value="LAST_7_DAYS">Last 7 days</option>
+              <option value="LAST_30_DAYS">Last 30 days</option>
+              <option value="CUSTOM">Custom range</option>
+            </select>
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+              className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Clear filters
+            </button>
+          </div>
+          {dateFilter === 'CUSTOM' && (
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Start date</label>
+                <input
+                  type="date"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm"
+                  value={customStart}
+                  max={customEnd || undefined}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">End date</label>
+                <input
+                  type="date"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm"
+                  value={customEnd}
+                  min={customStart || undefined}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                />
+              </div>
             </div>
           )}
+        </div>
+
+        <div className="px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-gray-100">
+          <div className="text-xs text-gray-500">
+            Showing {filteredCertificates.length} of {issuedCertificates.length} certificates
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {statusChips.map((chip) => {
+              const isActive = statusFilter === chip.value;
+              return (
+                <button
+                  key={chip.value}
+                  type="button"
+                  onClick={() => setStatusFilter(chip.value)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${isActive ? 'bg-parish-blue text-white border-parish-blue' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'}`}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
