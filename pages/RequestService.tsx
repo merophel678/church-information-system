@@ -75,6 +75,11 @@ const RequestService: React.FC = () => {
         setIsSubmitting(false);
         return;
       }
+      if (formData.confirmationCandidateBirthDate > today) {
+        setError('Birth date cannot be in the future.');
+        setIsSubmitting(false);
+        return;
+      }
     }
     try {
       const created = await addRequest({
@@ -310,6 +315,7 @@ const RequestService: React.FC = () => {
                       <input 
                         type="date" 
                         required
+                        max={today}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                         value={formData.confirmationCandidateBirthDate}
                         onChange={(e) => setFormData({...formData, confirmationCandidateBirthDate: e.target.value})}

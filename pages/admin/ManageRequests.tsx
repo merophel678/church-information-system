@@ -113,6 +113,27 @@ const ManageRequests: React.FC = () => {
     return SacramentType.BAPTISM;
   };
 
+  const toInputDate = (value?: string | Date | null) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
+  };
+
+  const findBaptismRecordForConfirmation = (req: ServiceRequest) => {
+    const candidateName = req.confirmationCandidateName?.trim();
+    const candidateBirthDate = req.confirmationCandidateBirthDate;
+    if (!candidateName) return undefined;
+    return records.find((rec) => {
+      if (rec.type !== SacramentType.BAPTISM || rec.isArchived) return false;
+      if (rec.name.trim().toLowerCase() !== candidateName.toLowerCase()) return false;
+      if (candidateBirthDate) {
+        return toInputDate(rec.birthDate) === candidateBirthDate;
+      }
+      return true;
+    });
+  };
+
   const handleStatusChangeRequest = (req: ServiceRequest, newStatus: RequestStatus) => {
     if (newStatus === RequestStatus.COMPLETED && req.category === RequestCategory.SACRAMENT && hasRecord(req.id)) {
       alert({
@@ -131,19 +152,35 @@ const ManageRequests: React.FC = () => {
       setIsStatusModalOpen(true);
     } else if (newStatus === RequestStatus.COMPLETED && req.category === RequestCategory.SACRAMENT) {
       const possibleDate = req.confirmedSchedule?.split(' ')[0] || req.preferredDate || new Date().toISOString().split('T')[0];
+      const sacramentType = inferSacramentType(req.serviceType);
+      const baptismRecord = sacramentType === SacramentType.CONFIRMATION
+        ? findBaptismRecordForConfirmation(req)
+        : undefined;
+      const candidateName = req.confirmationCandidateName?.trim() || '';
+      const prefilledName = baptismRecord?.name ?? candidateName;
+      const prefilledBirthDate = baptismRecord?.birthDate
+        ? toInputDate(baptismRecord.birthDate)
+        : (req.confirmationCandidateBirthDate || '');
+      const prefilledBirthPlace = baptismRecord?.birthPlace ?? '';
+      const prefilledFatherName = baptismRecord?.fatherName ?? '';
+      const prefilledMotherName = baptismRecord?.motherName ?? '';
+      const prefilledBaptismDate = baptismRecord?.date
+        ? toInputDate(baptismRecord.date)
+        : '';
+      const prefilledBaptismPlace = baptismRecord?.baptismPlace ?? parishPlaceDefault;
       setCompletionTarget(req);
       setCompletionFormData({
-        name: '',
+        name: prefilledName,
         date: possibleDate || '',
-        type: inferSacramentType(req.serviceType),
+        type: sacramentType,
         officiant: '',
         details: '',
-        baptismPlace: parishPlaceDefault,
-        baptismDate: '',
-        birthDate: '',
-        birthPlace: '',
-        fatherName: '',
-        motherName: '',
+        baptismPlace: prefilledBaptismPlace,
+        baptismDate: prefilledBaptismDate,
+        birthDate: prefilledBirthDate,
+        birthPlace: prefilledBirthPlace,
+        fatherName: prefilledFatherName,
+        motherName: prefilledMotherName,
         sponsors: '',
         registerBook: '',
         registerPage: '',
