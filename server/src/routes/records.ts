@@ -29,7 +29,11 @@ router.post('/', authenticate, async (req, res) => {
     sponsors,
     registerBook,
     registerPage,
-    registerLine
+    registerLine,
+    residence,
+    dateOfDeath,
+    causeOfDeath,
+    placeOfBurial
   } = req.body;
   if (!name || !date || !type || !officiant || !details) {
     return res.status(400).json({ message: 'All fields are required' });
@@ -51,7 +55,11 @@ router.post('/', authenticate, async (req, res) => {
       sponsors,
       registerBook,
       registerPage,
-      registerLine
+      registerLine,
+      residence,
+      dateOfDeath: dateOfDeath ? new Date(dateOfDeath) : undefined,
+      causeOfDeath,
+      placeOfBurial
     }
   });
   res.status(201).json(record);
@@ -74,7 +82,11 @@ router.put('/:id', authenticate, async (req, res) => {
     sponsors,
     registerBook,
     registerPage,
-    registerLine
+    registerLine,
+    residence,
+    dateOfDeath,
+    causeOfDeath,
+    placeOfBurial
   } = req.body;
 
   const record = await prisma.sacramentRecord.update({
@@ -94,7 +106,11 @@ router.put('/:id', authenticate, async (req, res) => {
       sponsors,
       registerBook,
       registerPage,
-      registerLine
+      registerLine,
+      residence,
+      dateOfDeath: dateOfDeath ? new Date(dateOfDeath) : undefined,
+      causeOfDeath,
+      placeOfBurial
     }
   });
   res.json(record);

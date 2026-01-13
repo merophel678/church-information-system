@@ -4,7 +4,11 @@ import prisma from '../prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import config from '../config.js';
 import { CertificateStatus } from '@prisma/client';
-import { generateBaptismCertificate, generateConfirmationCertificate } from '../services/certificateGenerator.js';
+import {
+  generateBaptismCertificate,
+  generateBurialCertificate,
+  generateConfirmationCertificate
+} from '../services/certificateGenerator.js';
 
 const router = Router();
 
@@ -51,6 +55,8 @@ router.post('/:id/generate', authenticate, async (req, res) => {
       updated = await generateBaptismCertificate(id, req.user?.username ?? 'Staff');
     } else if (normalizedType.includes('confirmation')) {
       updated = await generateConfirmationCertificate(id, req.user?.username ?? 'Staff');
+    } else if (normalizedType.includes('funeral') || normalizedType.includes('burial') || normalizedType.includes('death')) {
+      updated = await generateBurialCertificate(id, req.user?.username ?? 'Staff');
     } else {
       return res.status(400).json({ message: 'No generator available for this certificate type' });
     }
@@ -58,7 +64,12 @@ router.post('/:id/generate', authenticate, async (req, res) => {
     res.json(sanitizeCertificate(updated));
   } catch (err: any) {
     const message = err?.message ?? 'Unable to generate certificate';
-    if (message.includes('not found') || message.includes('No baptism record') || message.includes('No confirmation record')) {
+    if (
+      message.includes('not found') ||
+      message.includes('No baptism record') ||
+      message.includes('No confirmation record') ||
+      message.includes('No funeral record')
+    ) {
       return res.status(400).json({ message });
     }
     console.error(err);

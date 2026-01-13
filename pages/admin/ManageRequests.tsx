@@ -51,7 +51,11 @@ const ManageRequests: React.FC = () => {
     sponsors: '',
     registerBook: '',
     registerPage: '',
-    registerLine: ''
+    registerLine: '',
+    residence: '',
+    dateOfDeath: '',
+    causeOfDeath: '',
+    placeOfBurial: ''
   });
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
 
@@ -64,6 +68,11 @@ const ManageRequests: React.FC = () => {
   const requiresBaptismInfo =
     completionFormData.type === SacramentType.BAPTISM ||
     completionFormData.type === SacramentType.CONFIRMATION;
+  const requiresRegisterInfo =
+    completionFormData.type === SacramentType.BAPTISM ||
+    completionFormData.type === SacramentType.CONFIRMATION ||
+    completionFormData.type === SacramentType.FUNERAL;
+  const isFuneral = completionFormData.type === SacramentType.FUNERAL;
   const showBaptismDateField = completionFormData.type === SacramentType.CONFIRMATION;
 
   const filteredRequests = requests.filter(req => {
@@ -188,7 +197,11 @@ const ManageRequests: React.FC = () => {
         sponsors: '',
         registerBook: '',
         registerPage: '',
-        registerLine: ''
+        registerLine: '',
+        residence: '',
+        dateOfDeath: '',
+        causeOfDeath: '',
+        placeOfBurial: ''
       });
       setIsCompletionModalOpen(true);
     } else {
@@ -260,6 +273,18 @@ const ManageRequests: React.FC = () => {
       );
     }
 
+    if (completionFormData.type === SacramentType.FUNERAL) {
+      requiredFields.push(
+        { key: 'residence', label: 'Residence' },
+        { key: 'dateOfDeath', label: 'Date of death' },
+        { key: 'causeOfDeath', label: 'Cause of death' },
+        { key: 'placeOfBurial', label: 'Place of burial' },
+        { key: 'registerBook', label: 'Register book' },
+        { key: 'registerPage', label: 'Register page' },
+        { key: 'registerLine', label: 'Register line' }
+      );
+    }
+
     const missing = requiredFields
       .filter(({ key }) => {
         const value = completionFormData[key];
@@ -289,6 +314,13 @@ const ManageRequests: React.FC = () => {
       await alert({
         title: 'Invalid baptism date',
         message: 'Baptism date cannot be later than the sacrament date.'
+      });
+      return;
+    }
+    if (completionFormData.dateOfDeath && completionFormData.date && completionFormData.dateOfDeath > completionFormData.date) {
+      await alert({
+        title: 'Invalid date of death',
+        message: 'Date of death cannot be later than the burial date.'
       });
       return;
     }
@@ -674,7 +706,9 @@ const ManageRequests: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Sacrament</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {isFuneral ? 'Date of Burial' : 'Date of Sacrament'}
+                  </label>
                   <input
                     type="date"
                     required
@@ -706,6 +740,56 @@ const ManageRequests: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {isFuneral && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Residence</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.residence ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, residence: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Death</label>
+                      <input
+                        type="date"
+                        required
+                        max={completionFormData.date || undefined}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.dateOfDeath ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, dateOfDeath: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Cause of Death</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.causeOfDeath ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, causeOfDeath: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Place of Burial</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.placeOfBurial ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, placeOfBurial: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className={`grid grid-cols-1 ${showBaptismDateField ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
                 <div>
@@ -785,7 +869,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.registerBook ?? ''}
-                    required={requiresBaptismInfo}
+                    required={requiresRegisterInfo}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, registerBook: e.target.value })}
                   />
                 </div>
@@ -795,7 +879,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.registerPage ?? ''}
-                    required={requiresBaptismInfo}
+                    required={requiresRegisterInfo}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, registerPage: e.target.value })}
                   />
                 </div>
@@ -805,7 +889,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.registerLine ?? ''}
-                    required={requiresBaptismInfo}
+                    required={requiresRegisterInfo}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, registerLine: e.target.value })}
                   />
                 </div>

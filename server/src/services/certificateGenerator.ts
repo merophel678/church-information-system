@@ -49,6 +49,27 @@ type ConfirmationTemplateData = {
   logoDataUri?: string;
 };
 
+type BurialTemplateData = {
+  name: string;
+  residence: string;
+  dateOfDeath: Date | null;
+  causeOfDeath: string;
+  dateOfBurial: Date | null;
+  placeOfBurial: string;
+  ministerName: string;
+  registerBook: string;
+  registerPage: string;
+  registerLine: string;
+  priestName: string;
+  priestTitle: string;
+  issueDate: Date;
+  parishName: string;
+  parishLocation: string;
+  parishOfficeLocation: string;
+  diocese: string;
+  logoDataUri?: string;
+};
+
 const parishDefaults = {
   diocese: 'Diocese of Borongan',
   parishName: 'Quasi Parish of Our Lady of the Miraculous Medal',
@@ -60,6 +81,13 @@ const confirmationDefaults = {
   parishName: 'Quasi-Parish of Our Lady of the Miraculous Medal',
   parishLocation: 'Sabang South, Borongan City, Eastern Samar',
   parishOfficeLocation: 'Parish Office, Sabang South, Borongan City, Eastern Samar'
+};
+
+const burialDefaults = {
+  diocese: 'Diocese of Borongan',
+  parishName: 'Quasi-Parish of Our Lady of the Miraculous Medal',
+  parishLocation: 'Sabang, Borongan City',
+  parishOfficeLocation: 'Quasi-Parish office of Our Lady of the Miraculous Medal, Sabang, Borongan City'
 };
 
 const loadLogoDataUri = (): string | undefined => {
@@ -524,6 +552,237 @@ const renderConfirmationTemplate = (data: ConfirmationTemplateData): string => {
 `;
 };
 
+const renderBurialTemplate = (data: BurialTemplateData): string => {
+  const {
+    name,
+    residence,
+    dateOfDeath,
+    causeOfDeath,
+    dateOfBurial,
+    placeOfBurial,
+    ministerName,
+    registerBook,
+    registerPage,
+    registerLine,
+    priestName,
+    priestTitle,
+    issueDate,
+    parishName,
+    parishLocation,
+    parishOfficeLocation,
+    diocese,
+    logoDataUri
+  } = data;
+
+  const dateOfDeathText = fullDateUpper(dateOfDeath);
+  const dateOfBurialText = fullDateUpper(dateOfBurial);
+  const issueDay = ordinal(issueDate);
+  const issueMonthYear = monthYearUpper(issueDate);
+
+  const logoHtml = logoDataUri
+    ? `<img src="${logoDataUri}" alt="Logo" style="width:80px;height:80px;border-radius:50%;object-fit:contain;" />`
+    : 'LOGO';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Certificate of Burial</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap');
+    body {
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: "Times New Roman", Times, serif;
+    }
+    .certificate-container {
+      background-color: white;
+      width: 8.5in;
+      height: 11in;
+      padding: 40px 50px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    .border-frame {
+      border: 3px solid #000;
+      height: 100%;
+      width: 100%;
+      padding: 30px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 30px;
+      width: 100%;
+    }
+    .logo-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 1px dashed #999;
+      background-color: #f9f9f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #666;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .header-text {
+      text-align: center;
+    }
+    .diocese {
+      font-size: 13pt;
+      margin-bottom: 5px;
+    }
+    .parish-name {
+      font-weight: bold;
+      font-size: 11pt;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .location {
+      font-size: 12pt;
+    }
+    .main-title {
+      font-family: 'UnifrakturMaguntia', cursive;
+      font-size: 36pt;
+      text-align: center;
+      margin-bottom: 50px;
+      letter-spacing: 1px;
+    }
+    .data-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      row-gap: 20px;
+      margin-bottom: 40px;
+      font-size: 12pt;
+      padding-left: 10px;
+    }
+    .label {
+      font-family: "Times New Roman", Times, serif;
+      align-self: center;
+      text-transform: uppercase;
+    }
+    .value {
+      font-family: "Bookman Old Style", "Bookman", Georgia, serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 12pt;
+      color: #222;
+    }
+    .body-text {
+      text-align: justify;
+      font-size: 12pt;
+      line-height: 1.6;
+      margin-bottom: 60px;
+      padding: 0 10px;
+    }
+    .highlight-date {
+      font-family: "Bookman Old Style", "Bookman", Georgia, serif;
+      font-weight: 900;
+    }
+    .signature-section {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .priest-name {
+      font-family: "Bookman Old Style", "Bookman", Georgia, serif;
+      font-weight: 900;
+      font-size: 14pt;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .priest-title {
+      font-family: "Times New Roman", Times, serif;
+      font-weight: bold;
+      font-size: 12pt;
+    }
+    .record-info {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 11pt;
+      line-height: 1.4;
+    }
+    .record-value {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="certificate-container">
+    <div class="border-frame">
+      <div class="header">
+        <div class="logo-placeholder">${logoHtml}</div>
+        <div class="header-text">
+          <div class="diocese">${diocese}</div>
+          <div class="parish-name">${parishName}</div>
+          <div class="location">${parishLocation}</div>
+        </div>
+      </div>
+
+      <div class="main-title">Certificate of Burial</div>
+
+      <div class="data-grid">
+        <div class="label">Name:</div>
+        <div class="value">${name}</div>
+
+        <div class="label">Residence:</div>
+        <div class="value">${residence}</div>
+
+        <div class="label">Date of Death:</div>
+        <div class="value">${dateOfDeathText}</div>
+
+        <div class="label">Cause of Death:</div>
+        <div class="value">${causeOfDeath}</div>
+
+        <div class="label">Date of Burial:</div>
+        <div class="value">${dateOfBurialText}</div>
+
+        <div class="label">Place of Burial:</div>
+        <div class="value">${placeOfBurial}</div>
+
+        <div class="label">Name of Minister:</div>
+        <div class="value">${ministerName}</div>
+      </div>
+
+      <div class="body-text">
+        Given this <span class="highlight-date">${issueDay}</span> day of <span class="highlight-date">${issueMonthYear}</span> at the ${parishOfficeLocation}.
+      </div>
+
+      <div class="signature-section">
+        <div class="priest-name">${priestName}</div>
+        <div class="priest-title">${priestTitle}</div>
+      </div>
+
+      <div class="record-info">
+        Book no.: <span class="record-value">${registerBook || '___'}</span><br />
+        Page no. <span class="record-value">${registerPage || '___'}</span><br />
+        Line no. <span class="record-value">${registerLine || '___'}</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`;
+};
+
 const renderPdfFromHtml = async (html: string): Promise<Buffer> => {
   const browser = await puppeteer.launch({
     headless: true,
@@ -727,6 +986,104 @@ export const generateConfirmationCertificate = async (certificateId: string, upl
   const pdfBuffer = await renderPdfFromHtml(html);
 
   const fileName = `confirmation-certificate-${record.name?.replace(/\s+/g, '-').toLowerCase() || 'certificate'}.pdf`;
+
+  const updated = await prisma.issuedCertificate.update({
+    where: { id: certificateId },
+    data: {
+      status: CertificateStatus.UPLOADED,
+      fileData: pdfBuffer,
+      fileName,
+      fileMimeType: 'application/pdf',
+      fileSize: pdfBuffer.length,
+      uploadedAt: new Date(),
+      uploadedBy
+    }
+  });
+
+  return updated;
+};
+
+export const generateBurialCertificate = async (certificateId: string, uploadedBy: string) => {
+  const certificate = await prisma.issuedCertificate.findUnique({
+    where: { id: certificateId },
+    include: {
+      request: {
+        include: {
+          sacramentRecords: true
+        }
+      }
+    }
+  });
+
+  if (!certificate) {
+    throw new Error('Certificate not found');
+  }
+
+  let record = certificate.request?.sacramentRecords.find(
+    (r) => r.type === SacramentType.FUNERAL && !r.isArchived
+  );
+
+  if (!record) {
+    const recipientName =
+      certificate.request?.certificateRecipientName ||
+      certificate.recipientName ||
+      certificate.request?.requesterName;
+
+    const birthDateFilter = certificate.request?.certificateRecipientBirthDate
+      ? new Date(certificate.request.certificateRecipientBirthDate)
+      : undefined;
+
+    const fallback = await prisma.sacramentRecord.findFirst({
+      where: {
+        type: SacramentType.FUNERAL,
+        isArchived: false,
+        name: recipientName,
+        ...(birthDateFilter ? { birthDate: birthDateFilter } : {})
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    if (fallback) {
+      if (!fallback.requestId) {
+        await prisma.sacramentRecord.update({
+          where: { id: fallback.id },
+          data: { requestId: certificate.requestId }
+        });
+      }
+      record = fallback;
+    } else {
+      throw new Error('No funeral record linked to this certificate');
+    }
+  }
+
+  const logoDataUri = loadLogoDataUri();
+  const minister = record.officiant || certificate.issuedBy || 'Parish Priest';
+
+  const data: BurialTemplateData = {
+    name: (record.name ?? '').toUpperCase(),
+    residence: (record.residence ?? '').toUpperCase(),
+    dateOfDeath: record.dateOfDeath ?? null,
+    causeOfDeath: (record.causeOfDeath ?? '').toUpperCase(),
+    dateOfBurial: record.date ?? null,
+    placeOfBurial: (record.placeOfBurial ?? '').toUpperCase(),
+    ministerName: minister.toUpperCase(),
+    registerBook: record.registerBook ?? '',
+    registerPage: record.registerPage ?? '',
+    registerLine: record.registerLine ?? '',
+    priestName: minister.toUpperCase(),
+    priestTitle: 'Parish Priest',
+    issueDate: certificate.dateIssued,
+    parishName: burialDefaults.parishName,
+    parishLocation: burialDefaults.parishLocation,
+    parishOfficeLocation: burialDefaults.parishOfficeLocation,
+    diocese: burialDefaults.diocese,
+    logoDataUri
+  };
+
+  const html = renderBurialTemplate(data);
+  const pdfBuffer = await renderPdfFromHtml(html);
+
+  const fileName = `burial-certificate-${record.name?.replace(/\s+/g, '-').toLowerCase() || 'certificate'}.pdf`;
 
   const updated = await prisma.issuedCertificate.update({
     where: { id: certificateId },

@@ -22,6 +22,10 @@ export interface SacramentRecord {
   registerBook?: string;
   registerPage?: string;
   registerLine?: string;
+  residence?: string;
+  dateOfDeath?: string;
+  causeOfDeath?: string;
+  placeOfBurial?: string;
   isArchived: boolean;
   archivedAt?: string;
   archivedBy?: string;

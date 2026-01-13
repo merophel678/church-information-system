@@ -34,6 +34,8 @@ const CertificateRegistry: React.FC = () => {
         ? 'Cannot generate: no baptism record is linked to this certificate. Please link/create the baptism record for this person and retry.'
         : raw.includes('No confirmation record linked')
           ? 'Cannot generate: no confirmation record is linked to this certificate. Please complete the confirmation record and retry.'
+        : raw.includes('No funeral record linked')
+          ? 'Cannot generate: no funeral/burial record is linked to this certificate. Please complete the funeral record and retry.'
         : 'Unable to generate certificate right now. Please verify the linked sacrament record and try again.';
       setGenerateError(friendly);
     } finally {
@@ -176,10 +178,10 @@ const CertificateRegistry: React.FC = () => {
                         onClick={() => handleGenerate(cert)}
                         disabled={
                           generatingId === cert.id ||
-                          !/baptism|confirmation/.test(cert.type.toLowerCase())
+                          !/baptism|confirmation|funeral|burial|death/.test(cert.type.toLowerCase())
                         }
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={!/baptism|confirmation/.test(cert.type.toLowerCase()) ? 'Generation template not available yet for this type' : ''}
+                        title={!/baptism|confirmation|funeral|burial|death/.test(cert.type.toLowerCase()) ? 'Generation template not available yet for this type' : ''}
                       >
                         {generatingId === cert.id ? (
                           <>

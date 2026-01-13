@@ -124,6 +124,10 @@ router.put('/:id', authenticate, async (req, res) => {
       registerBook?: string;
       registerPage?: string;
       registerLine?: string;
+      residence?: string;
+      dateOfDeath?: string;
+      causeOfDeath?: string;
+      placeOfBurial?: string;
     };
   };
 
@@ -182,7 +186,11 @@ router.put('/:id', authenticate, async (req, res) => {
           sponsors: recordDetails?.sponsors,
           registerBook: recordDetails?.registerBook,
           registerPage: recordDetails?.registerPage,
-          registerLine: recordDetails?.registerLine
+          registerLine: recordDetails?.registerLine,
+          residence: recordDetails?.residence,
+          dateOfDeath: recordDetails?.dateOfDeath ? new Date(recordDetails.dateOfDeath) : undefined,
+          causeOfDeath: recordDetails?.causeOfDeath,
+          placeOfBurial: recordDetails?.placeOfBurial
         }
       });
     }

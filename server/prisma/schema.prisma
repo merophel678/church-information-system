@@ -134,6 +134,10 @@ model SacramentRecord {
   registerBook String?
   registerPage String?
   registerLine String?
+  residence   String?
+  dateOfDeath DateTime?
+  causeOfDeath String?
+  placeOfBurial String?
   isArchived  Boolean       @default(false)
   archivedAt  DateTime?
   archivedBy  String?
