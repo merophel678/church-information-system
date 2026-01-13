@@ -19,6 +19,58 @@ const CertificateRegistry: React.FC = () => {
 
   const searchLower = searchTerm.toLowerCase();
   const requestById = new Map(requests.map((req) => [req.id, req]));
+  const normalizeText = (value?: string) => (value ? value.toLowerCase().replace(/\s+/g, ' ').trim() : '');
+  const normalizeDateKey = (value?: string) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
+  };
+  const normalizeTypeKey = (value: string) => {
+    const normalized = value.toLowerCase();
+    if (normalized.includes('baptism')) return 'baptism';
+    if (normalized.includes('confirmation')) return 'confirmation';
+    if (normalized.includes('marriage')) return 'marriage';
+    if (normalized.includes('funeral') || normalized.includes('burial') || normalized.includes('death')) return 'funeral';
+    return normalized;
+  };
+
+  const buildFallbackKey = (request?: ServiceRequest, cert?: IssuedCertificate) => {
+    const typeSource = request?.serviceType ?? cert?.type ?? '';
+    const typeKey = normalizeTypeKey(typeSource);
+    if (!typeKey) return null;
+
+    const certName = normalizeText(cert?.recipientName);
+    if (typeKey === 'marriage') {
+      const groom = normalizeText(request?.marriageGroomName);
+      const bride = normalizeText(request?.marriageBrideName);
+      const dateKey = normalizeDateKey(request?.marriageDate);
+      const names = groom || bride ? `${groom}::${bride}` : certName;
+      return `marriage::${names}::${dateKey}`;
+    }
+
+    if (typeKey === 'funeral') {
+      const name = normalizeText(
+        request?.certificateRecipientName ?? request?.funeralDeceasedName
+      ) || certName;
+      const dateKey = normalizeDateKey(request?.certificateRecipientDeathDate ?? request?.funeralDateOfDeath);
+      return `funeral::${name}::${dateKey}`;
+    }
+
+    const name =
+      normalizeText(request?.certificateRecipientName ?? request?.confirmationCandidateName) || certName;
+    const birthKey = normalizeDateKey(request?.certificateRecipientBirthDate ?? request?.confirmationCandidateBirthDate);
+    return `${typeKey}::${name}::${birthKey}`;
+  };
+
+  const fallbackKeyToRecordId = new Map<string, string>();
+  requests.forEach((req) => {
+    if (!req.recordId) return;
+    const key = buildFallbackKey(req);
+    if (key) {
+      fallbackKeyToRecordId.set(key, req.recordId);
+    }
+  });
 
   const parseDateInput = (value: string, endOfDay = false) => {
     if (!value) return null;
@@ -76,11 +128,16 @@ const CertificateRegistry: React.FC = () => {
 
   const groupedCertificates = issuedCertificates.reduce((acc, cert) => {
     const request = requestById.get(cert.requestId);
-    const recordKey = request?.recordId ?? `${cert.type.toLowerCase()}::${cert.recipientName.toLowerCase()}`;
+    const fallbackKey = buildFallbackKey(request, cert);
+    const resolvedRecordId = request?.recordId ?? (fallbackKey ? fallbackKeyToRecordId.get(fallbackKey) : undefined);
+    const recordKey =
+      resolvedRecordId ??
+      fallbackKey ??
+      `${normalizeTypeKey(cert.type)}::${normalizeText(cert.recipientName)}`;
     if (!acc.has(recordKey)) {
       acc.set(recordKey, {
         key: recordKey,
-        recordId: request?.recordId,
+        recordId: resolvedRecordId,
         certificates: [],
         requests: []
       });
@@ -104,15 +161,15 @@ const CertificateRegistry: React.FC = () => {
         const bTime = b.uploadedAt ? new Date(b.uploadedAt).getTime() : new Date(b.dateIssued).getTime();
         return bTime - aTime;
       })[0];
-    const requestCount = group.recordId
-      ? requests.filter(
-          (req) =>
-            req.recordId === group.recordId &&
-            (req.status === RequestStatus.APPROVED || req.status === RequestStatus.COMPLETED)
-        ).length
-      : group.requests.filter(
-          (req) => req.status === RequestStatus.APPROVED || req.status === RequestStatus.COMPLETED
-        ).length;
+    const requestCandidates = new Map<string, ServiceRequest>();
+    const recordRequests = group.recordId
+      ? requests.filter((req) => req.recordId === group.recordId)
+      : [];
+    recordRequests.forEach((req) => requestCandidates.set(req.id, req));
+    group.requests.forEach((req) => requestCandidates.set(req.id, req));
+    const requestCount = Array.from(requestCandidates.values()).filter(
+      (req) => req.status === RequestStatus.APPROVED || req.status === RequestStatus.COMPLETED
+    ).length;
 
     return {
       ...group,
