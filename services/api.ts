@@ -84,6 +84,9 @@ export const api = {
     funeralResidence?: string;
     funeralDateOfDeath?: string;
     funeralPlaceOfBurial?: string;
+    marriageGroomName?: string;
+    marriageBrideName?: string;
+    marriageDate?: string;
     certificateRecipientName?: string;
     certificateRecipientBirthDate?: string;
     certificateRecipientDeathDate?: string;

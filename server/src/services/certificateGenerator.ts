@@ -70,6 +70,36 @@ type BurialTemplateData = {
   logoDataUri?: string;
 };
 
+type MarriageTemplateData = {
+  groomName: string;
+  brideName: string;
+  groomAge: string;
+  brideAge: string;
+  groomResidence: string;
+  brideResidence: string;
+  groomNationality: string;
+  brideNationality: string;
+  groomFatherName: string;
+  brideFatherName: string;
+  groomMotherName: string;
+  brideMotherName: string;
+  witnesses: string;
+  registerBook: string;
+  registerPage: string;
+  registerLine: string;
+  marriageDate: Date | null;
+  officiant: string;
+  priestName: string;
+  priestTitle: string;
+  issueDate: Date;
+  diocese: string;
+  parishName: string;
+  parishLocationLine1: string;
+  parishLocationLine2: string;
+  logoDataUri?: string;
+  weddingLogoDataUri?: string;
+};
+
 const parishDefaults = {
   diocese: 'Diocese of Borongan',
   parishName: 'Quasi Parish of Our Lady of the Miraculous Medal',
@@ -90,10 +120,17 @@ const burialDefaults = {
   parishOfficeLocation: 'Quasi-Parish office of Our Lady of the Miraculous Medal, Sabang, Borongan City'
 };
 
-const loadLogoDataUri = (): string | undefined => {
+const marriageDefaults = {
+  diocese: 'Diocese of Borongan',
+  parishName: 'QUASI-PARISH OF OUR LADY OF THE MIRACULOUS MEDAL',
+  parishLocationLine1: 'Brgy Sabang South, Borongan City',
+  parishLocationLine2: 'Philippines'
+};
+
+const loadAssetDataUri = (fileName: string): string | undefined => {
   try {
-    const logoPath = path.join(process.cwd(), 'assets', 'church-logo.png');
-    const file = fs.readFileSync(logoPath);
+    const filePath = path.join(process.cwd(), 'assets', fileName);
+    const file = fs.readFileSync(filePath);
     const base64 = file.toString('base64');
     return `data:image/png;base64,${base64}`;
   } catch {
@@ -101,10 +138,21 @@ const loadLogoDataUri = (): string | undefined => {
   }
 };
 
+const loadLogoDataUri = (): string | undefined => loadAssetDataUri('church-logo.png');
+
+const loadWeddingLogoDataUri = (): string | undefined => loadAssetDataUri('wedding-logo.png');
+
 const ordinal = (date: Date | null): string => {
   if (!date) return '';
   const d = date.getDate();
   const suffix = d % 10 === 1 && d !== 11 ? 'ST' : d % 10 === 2 && d !== 12 ? 'ND' : d % 10 === 3 && d !== 13 ? 'RD' : 'TH';
+  return `${d}${suffix}`;
+};
+
+const ordinalLower = (date: Date | null): string => {
+  if (!date) return '';
+  const d = date.getDate();
+  const suffix = d % 10 === 1 && d !== 11 ? 'st' : d % 10 === 2 && d !== 12 ? 'nd' : d % 10 === 3 && d !== 13 ? 'rd' : 'th';
   return `${d}${suffix}`;
 };
 
@@ -121,6 +169,11 @@ const fullDateUpper = (date: Date | null): string => {
 const monthUpper = (date: Date | null): string => {
   if (!date) return '';
   return date.toLocaleString('en-US', { month: 'long' }).toUpperCase();
+};
+
+const monthTitle = (date: Date | null): string => {
+  if (!date) return '';
+  return date.toLocaleString('en-US', { month: 'long' });
 };
 
 const yearTwoDigits = (date: Date | null): string => {
@@ -783,6 +836,288 @@ const renderBurialTemplate = (data: BurialTemplateData): string => {
 `;
 };
 
+const renderMarriageTemplate = (data: MarriageTemplateData): string => {
+  const {
+    groomName,
+    brideName,
+    groomAge,
+    brideAge,
+    groomResidence,
+    brideResidence,
+    groomNationality,
+    brideNationality,
+    groomFatherName,
+    brideFatherName,
+    groomMotherName,
+    brideMotherName,
+    witnesses,
+    registerBook,
+    registerPage,
+    registerLine,
+    marriageDate,
+    officiant,
+    priestName,
+    priestTitle,
+    diocese,
+    parishName,
+    parishLocationLine1,
+    parishLocationLine2,
+    logoDataUri,
+    weddingLogoDataUri
+  } = data;
+
+  const dayText = ordinalLower(marriageDate);
+  const monthText = monthTitle(marriageDate);
+  const yearText = marriageDate ? String(marriageDate.getFullYear()) : '';
+
+  const logoHtml = logoDataUri
+    ? `<img src="${logoDataUri}" alt="Logo" style="width:70px;height:70px;border-radius:50%;object-fit:contain;" />`
+    : 'LOGO';
+  const weddingLogoHtml = weddingLogoDataUri
+    ? `<img src="${weddingLogoDataUri}" alt="Wedding Logo" style="width:120px;height:auto;object-fit:contain;" />`
+    : 'LOGO';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Certificate of Marriage</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+    body {
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: "Times New Roman", Times, serif;
+    }
+    .certificate-container {
+      background-color: white;
+      width: 8.5in;
+      height: 11in;
+      padding: 40px 50px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    .border-frame {
+      border: 3px solid #333;
+      height: 100%;
+      width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .header-section {
+      display: flex;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .header-left-image {
+      width: 120px;
+      height: auto;
+      margin-right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-center {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-right: 120px;
+    }
+    .diocese-logo {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 1px dashed #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .header-text {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 10pt;
+      font-weight: bold;
+      line-height: 1.3;
+    }
+    .main-title {
+      text-align: center;
+      font-family: "Bookman Old Style", "Bookman", Georgia, serif;
+      font-weight: 900;
+      font-size: 24pt;
+      text-transform: uppercase;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      color: #222;
+    }
+    .script-subtitle {
+      text-align: center;
+      font-family: 'Great Vibes', 'Brush Script MT', cursive;
+      font-size: 22pt;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .data-grid {
+      display: grid;
+      grid-template-columns: 90px 1fr 40px 1fr;
+      column-gap: 10px;
+      row-gap: 8px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      margin-bottom: 30px;
+    }
+    .label {
+      font-weight: bold;
+      color: #000;
+    }
+    .value {
+      color: #222;
+    }
+    .center-word {
+      text-align: center;
+      font-style: italic;
+      font-family: "Times New Roman", serif;
+    }
+    .ceremony-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .script-large {
+      font-family: 'Great Vibes', 'Brush Script MT', cursive;
+      font-size: 32pt;
+      margin: 10px 0;
+      font-weight: normal;
+    }
+    .rites-text {
+      font-family: "Times New Roman", serif;
+      font-style: italic;
+      font-weight: bold;
+      font-size: 14pt;
+      margin-bottom: 20px;
+    }
+    .paragraph-text {
+      text-align: justify;
+      font-family: "Times New Roman", serif;
+      font-size: 12pt;
+      line-height: 1.6;
+    }
+    .fill-bold {
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: bold;
+      font-style: italic;
+    }
+    .footer {
+      margin-top: 60px;
+      display: flex;
+      justify-content: flex-end;
+      padding-right: 30px;
+    }
+    .signature-block {
+      text-align: center;
+    }
+    .priest-name {
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 11pt;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .priest-title {
+      font-style: italic;
+      font-size: 10pt;
+      font-family: "Times New Roman", serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="certificate-container">
+    <div class="border-frame">
+      <div class="header-section">
+        <div class="header-left-image">${weddingLogoHtml}</div>
+        <div class="header-center">
+          <div class="diocese-logo">${logoHtml}</div>
+          <div class="header-text">
+            ${diocese}<br />
+            ${parishName}<br />
+            ${parishLocationLine1}<br />
+            ${parishLocationLine2}
+          </div>
+        </div>
+      </div>
+
+      <div class="main-title">Certificate of Marriage</div>
+      <div class="script-subtitle">This Certifies that</div>
+
+      <div class="data-grid">
+        <div class="label">Name:</div>
+        <div class="value" style="font-weight: bold;">${groomName}</div>
+        <div class="center-word">and</div>
+        <div class="value" style="font-weight: bold;">${brideName}</div>
+
+        <div class="label">Age:</div>
+        <div class="value">${groomAge}</div>
+        <div></div>
+        <div class="value">${brideAge}</div>
+
+        <div class="label">Residence:</div>
+        <div class="value">${groomResidence}</div>
+        <div></div>
+        <div class="value">${brideResidence}</div>
+
+        <div class="label">Nationality:</div>
+        <div class="value">${groomNationality}</div>
+        <div></div>
+        <div class="value">${brideNationality}</div>
+
+        <div class="label">Father:</div>
+        <div class="value">${groomFatherName}</div>
+        <div></div>
+        <div class="value">${brideFatherName}</div>
+
+        <div class="label">Mother:</div>
+        <div class="value">${groomMotherName}</div>
+        <div></div>
+        <div class="value">${brideMotherName}</div>
+      </div>
+
+      <div class="ceremony-section">
+        <div class="script-subtitle">were united in</div>
+        <div class="script-large">Holy Matrimony</div>
+        <div class="rites-text">According to the Rites of the Holy Roman Catholic Church</div>
+      </div>
+
+      <div class="paragraph-text">
+        on the <span class="fill-bold">${dayText}</span> day of <span class="fill-bold">${monthText}</span> year <span class="fill-bold">${yearText}</span>. The Marriage was solemnized by <span class="fill-bold">${officiant}</span>, in the presence of <span class="fill-bold">${witnesses}</span> as witnesses as appears from the Marriage Records of this Church<br />
+        Book No. <span class="fill-bold">${registerBook || '___'}</span>, Page No. <span class="fill-bold">${registerPage || '___'}</span>, Line No. <span class="fill-bold">${registerLine || '___'}</span>
+      </div>
+
+      <div class="footer">
+        <div class="signature-block">
+          <br /><br />
+          <div class="priest-name">${priestName}</div>
+          <div class="priest-title">${priestTitle}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`;
+};
+
 const renderPdfFromHtml = async (html: string): Promise<Buffer> => {
   const browser = await puppeteer.launch({
     headless: true,
@@ -986,6 +1321,110 @@ export const generateConfirmationCertificate = async (certificateId: string, upl
   const pdfBuffer = await renderPdfFromHtml(html);
 
   const fileName = `confirmation-certificate-${record.name?.replace(/\s+/g, '-').toLowerCase() || 'certificate'}.pdf`;
+
+  const updated = await prisma.issuedCertificate.update({
+    where: { id: certificateId },
+    data: {
+      status: CertificateStatus.UPLOADED,
+      fileData: pdfBuffer,
+      fileName,
+      fileMimeType: 'application/pdf',
+      fileSize: pdfBuffer.length,
+      uploadedAt: new Date(),
+      uploadedBy
+    }
+  });
+
+  return updated;
+};
+
+export const generateMarriageCertificate = async (certificateId: string, uploadedBy: string) => {
+  const certificate = await prisma.issuedCertificate.findUnique({
+    where: { id: certificateId },
+    include: {
+      request: {
+        include: {
+          sacramentRecords: true
+        }
+      }
+    }
+  });
+
+  if (!certificate) {
+    throw new Error('Certificate not found');
+  }
+
+  let record = certificate.request?.sacramentRecords.find(
+    (r) => r.type === SacramentType.MARRIAGE && !r.isArchived
+  );
+
+  if (!record) {
+    const groomName = certificate.request?.marriageGroomName;
+    const brideName = certificate.request?.marriageBrideName;
+    const marriageDate = certificate.request?.marriageDate ? new Date(certificate.request.marriageDate) : undefined;
+
+    const fallback = await prisma.sacramentRecord.findFirst({
+      where: {
+        type: SacramentType.MARRIAGE,
+        isArchived: false,
+        ...(groomName ? { groomName } : {}),
+        ...(brideName ? { brideName } : {}),
+        ...(marriageDate ? { date: marriageDate } : {})
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    if (fallback) {
+      if (!fallback.requestId) {
+        await prisma.sacramentRecord.update({
+          where: { id: fallback.id },
+          data: { requestId: certificate.requestId }
+        });
+      }
+      record = fallback;
+    } else {
+      throw new Error('No marriage record linked to this certificate');
+    }
+  }
+
+  const logoDataUri = loadLogoDataUri();
+  const weddingLogoDataUri = loadWeddingLogoDataUri();
+  const priestName = record.officiant || certificate.issuedBy || 'Parish Priest';
+
+  const data: MarriageTemplateData = {
+    groomName: (record.groomName ?? '').toUpperCase(),
+    brideName: (record.brideName ?? '').toUpperCase(),
+    groomAge: record.groomAge ?? '',
+    brideAge: record.brideAge ?? '',
+    groomResidence: (record.groomResidence ?? '').toUpperCase(),
+    brideResidence: (record.brideResidence ?? '').toUpperCase(),
+    groomNationality: (record.groomNationality ?? '').toUpperCase(),
+    brideNationality: (record.brideNationality ?? '').toUpperCase(),
+    groomFatherName: (record.groomFatherName ?? '').toUpperCase(),
+    brideFatherName: (record.brideFatherName ?? '').toUpperCase(),
+    groomMotherName: (record.groomMotherName ?? '').toUpperCase(),
+    brideMotherName: (record.brideMotherName ?? '').toUpperCase(),
+    witnesses: (record.sponsors ?? '').toUpperCase(),
+    registerBook: record.registerBook ?? '',
+    registerPage: record.registerPage ?? '',
+    registerLine: record.registerLine ?? '',
+    marriageDate: record.date ?? null,
+    officiant: priestName.toUpperCase(),
+    priestName: priestName.toUpperCase(),
+    priestTitle: 'Parish Priest',
+    issueDate: certificate.dateIssued,
+    diocese: marriageDefaults.diocese,
+    parishName: marriageDefaults.parishName,
+    parishLocationLine1: marriageDefaults.parishLocationLine1,
+    parishLocationLine2: marriageDefaults.parishLocationLine2,
+    logoDataUri,
+    weddingLogoDataUri
+  };
+
+  const html = renderMarriageTemplate(data);
+  const pdfBuffer = await renderPdfFromHtml(html);
+
+  const fileName = `marriage-certificate-${record.groomName?.replace(/\s+/g, '-').toLowerCase() || 'groom'}-${record.brideName?.replace(/\s+/g, '-').toLowerCase() || 'bride'}.pdf`;
 
   const updated = await prisma.issuedCertificate.update({
     where: { id: certificateId },

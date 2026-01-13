@@ -33,7 +33,19 @@ router.post('/', authenticate, async (req, res) => {
     residence,
     dateOfDeath,
     causeOfDeath,
-    placeOfBurial
+    placeOfBurial,
+    groomName,
+    brideName,
+    groomAge,
+    brideAge,
+    groomResidence,
+    brideResidence,
+    groomNationality,
+    brideNationality,
+    groomFatherName,
+    brideFatherName,
+    groomMotherName,
+    brideMotherName
   } = req.body;
   if (!name || !date || !type || !officiant || !details) {
     return res.status(400).json({ message: 'All fields are required' });
@@ -59,7 +71,19 @@ router.post('/', authenticate, async (req, res) => {
       residence,
       dateOfDeath: dateOfDeath ? new Date(dateOfDeath) : undefined,
       causeOfDeath,
-      placeOfBurial
+      placeOfBurial,
+      groomName,
+      brideName,
+      groomAge,
+      brideAge,
+      groomResidence,
+      brideResidence,
+      groomNationality,
+      brideNationality,
+      groomFatherName,
+      brideFatherName,
+      groomMotherName,
+      brideMotherName
     }
   });
   res.status(201).json(record);
@@ -86,7 +110,19 @@ router.put('/:id', authenticate, async (req, res) => {
     residence,
     dateOfDeath,
     causeOfDeath,
-    placeOfBurial
+    placeOfBurial,
+    groomName,
+    brideName,
+    groomAge,
+    brideAge,
+    groomResidence,
+    brideResidence,
+    groomNationality,
+    brideNationality,
+    groomFatherName,
+    brideFatherName,
+    groomMotherName,
+    brideMotherName
   } = req.body;
 
   const record = await prisma.sacramentRecord.update({
@@ -110,7 +146,19 @@ router.put('/:id', authenticate, async (req, res) => {
       residence,
       dateOfDeath: dateOfDeath ? new Date(dateOfDeath) : undefined,
       causeOfDeath,
-      placeOfBurial
+      placeOfBurial,
+      groomName,
+      brideName,
+      groomAge,
+      brideAge,
+      groomResidence,
+      brideResidence,
+      groomNationality,
+      brideNationality,
+      groomFatherName,
+      brideFatherName,
+      groomMotherName,
+      brideMotherName
     }
   });
   res.json(record);

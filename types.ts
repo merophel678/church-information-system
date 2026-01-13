@@ -26,6 +26,18 @@ export interface SacramentRecord {
   dateOfDeath?: string;
   causeOfDeath?: string;
   placeOfBurial?: string;
+  groomName?: string;
+  brideName?: string;
+  groomAge?: string;
+  brideAge?: string;
+  groomResidence?: string;
+  brideResidence?: string;
+  groomNationality?: string;
+  brideNationality?: string;
+  groomFatherName?: string;
+  brideFatherName?: string;
+  groomMotherName?: string;
+  brideMotherName?: string;
   isArchived: boolean;
   archivedAt?: string;
   archivedBy?: string;
@@ -96,6 +108,9 @@ export interface ServiceRequest {
   funeralResidence?: string;
   funeralDateOfDeath?: string;
   funeralPlaceOfBurial?: string;
+  marriageGroomName?: string;
+  marriageBrideName?: string;
+  marriageDate?: string;
   certificateRecipientName?: string;
   certificateRecipientBirthDate?: string;
   certificateRecipientDeathDate?: string;

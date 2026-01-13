@@ -35,6 +35,9 @@ router.post('/', async (req, res) => {
     funeralResidence,
     funeralDateOfDeath,
     funeralPlaceOfBurial,
+    marriageGroomName,
+    marriageBrideName,
+    marriageDate,
     certificateRecipientName,
     certificateRecipientBirthDate,
     certificateRecipientDeathDate,
@@ -52,8 +55,12 @@ router.post('/', async (req, res) => {
     category === RequestCategory.SACRAMENT && normalizedService.includes('funeral');
   const isDeathCertificate =
     category === RequestCategory.CERTIFICATE && normalizedService.includes('death');
+  const isMarriageRequest =
+    category === RequestCategory.SACRAMENT && normalizedService.includes('marriage');
+  const isMarriageCertificate =
+    category === RequestCategory.CERTIFICATE && normalizedService.includes('marriage');
 
-  if (!details && !isFuneralRequest && !isDeathCertificate) {
+  if (!details && !isFuneralRequest && !isDeathCertificate && !isMarriageRequest && !isMarriageCertificate) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -61,7 +68,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ message: 'Confirmation candidate name and birth date are required' });
   }
 
-  if (category === RequestCategory.CERTIFICATE && !certificateRecipientName) {
+  if (category === RequestCategory.CERTIFICATE && !isMarriageCertificate && !certificateRecipientName) {
     return res.status(400).json({ message: 'Certificate recipient name is required for certificate requests' });
   }
 
@@ -79,6 +86,21 @@ router.post('/', async (req, res) => {
     }
     if (!requesterRelationship) {
       return res.status(400).json({ message: 'Relationship to the deceased is required for funeral requests' });
+    }
+  }
+
+  if (isMarriageRequest) {
+    if (!marriageGroomName || !marriageBrideName) {
+      return res.status(400).json({ message: 'Marriage requests require both groom and bride names' });
+    }
+    if (!preferredDate) {
+      return res.status(400).json({ message: 'Preferred date/time is required for marriage requests' });
+    }
+  }
+
+  if (isMarriageCertificate) {
+    if (!marriageGroomName || !marriageBrideName || !marriageDate) {
+      return res.status(400).json({ message: 'Marriage certificate requests require groom name, bride name, and marriage date' });
     }
   }
 
@@ -113,6 +135,9 @@ router.post('/', async (req, res) => {
       funeralResidence,
       funeralDateOfDeath: funeralDateOfDeath ? new Date(funeralDateOfDeath) : undefined,
       funeralPlaceOfBurial,
+      marriageGroomName,
+      marriageBrideName,
+      marriageDate: marriageDate ? new Date(marriageDate) : undefined,
       certificateRecipientName,
       certificateRecipientBirthDate: certificateRecipientBirthDate ? new Date(certificateRecipientBirthDate) : undefined,
       certificateRecipientDeathDate: certificateRecipientDeathDate ? new Date(certificateRecipientDeathDate) : undefined,
@@ -147,6 +172,9 @@ router.put('/:id', authenticate, async (req, res) => {
     funeralResidence?: string;
     funeralDateOfDeath?: string;
     funeralPlaceOfBurial?: string;
+    marriageGroomName?: string;
+    marriageBrideName?: string;
+    marriageDate?: string;
   }> & {
     recordDetails?: {
       name?: string;
@@ -168,6 +196,18 @@ router.put('/:id', authenticate, async (req, res) => {
       dateOfDeath?: string;
       causeOfDeath?: string;
       placeOfBurial?: string;
+      groomName?: string;
+      brideName?: string;
+      groomAge?: string;
+      brideAge?: string;
+      groomResidence?: string;
+      brideResidence?: string;
+      groomNationality?: string;
+      brideNationality?: string;
+      groomFatherName?: string;
+      brideFatherName?: string;
+      groomMotherName?: string;
+      brideMotherName?: string;
     };
   };
 
@@ -191,7 +231,8 @@ router.put('/:id', authenticate, async (req, res) => {
         : undefined,
       funeralDateOfDeath: updates.funeralDateOfDeath
         ? new Date(updates.funeralDateOfDeath)
-        : undefined
+        : undefined,
+      marriageDate: updates.marriageDate ? new Date(updates.marriageDate) : undefined
     }
   });
 
@@ -236,7 +277,19 @@ router.put('/:id', authenticate, async (req, res) => {
           residence: recordDetails?.residence,
           dateOfDeath: recordDetails?.dateOfDeath ? new Date(recordDetails.dateOfDeath) : undefined,
           causeOfDeath: recordDetails?.causeOfDeath,
-          placeOfBurial: recordDetails?.placeOfBurial
+          placeOfBurial: recordDetails?.placeOfBurial,
+          groomName: recordDetails?.groomName,
+          brideName: recordDetails?.brideName,
+          groomAge: recordDetails?.groomAge,
+          brideAge: recordDetails?.brideAge,
+          groomResidence: recordDetails?.groomResidence,
+          brideResidence: recordDetails?.brideResidence,
+          groomNationality: recordDetails?.groomNationality,
+          brideNationality: recordDetails?.brideNationality,
+          groomFatherName: recordDetails?.groomFatherName,
+          brideFatherName: recordDetails?.brideFatherName,
+          groomMotherName: recordDetails?.groomMotherName,
+          brideMotherName: recordDetails?.brideMotherName
         }
       });
     }
@@ -290,14 +343,26 @@ router.post('/:id/issue', authenticate, async (req, res) => {
     const sacramentType = mapServiceToSacramentType(request.serviceType);
     if (sacramentType) {
       const where: any = { type: sacramentType, isArchived: false };
-      if (request.certificateRecipientName) {
-        where.name = request.certificateRecipientName;
-      }
-      if (sacramentType === SacramentType.FUNERAL && request.certificateRecipientDeathDate) {
-        where.dateOfDeath = request.certificateRecipientDeathDate;
-      }
-      if (sacramentType !== SacramentType.FUNERAL && request.certificateRecipientBirthDate) {
-        where.birthDate = request.certificateRecipientBirthDate;
+      if (sacramentType === SacramentType.MARRIAGE) {
+        if (request.marriageGroomName) {
+          where.groomName = request.marriageGroomName;
+        }
+        if (request.marriageBrideName) {
+          where.brideName = request.marriageBrideName;
+        }
+        if (request.marriageDate) {
+          where.date = request.marriageDate;
+        }
+      } else {
+        if (request.certificateRecipientName) {
+          where.name = request.certificateRecipientName;
+        }
+        if (sacramentType === SacramentType.FUNERAL && request.certificateRecipientDeathDate) {
+          where.dateOfDeath = request.certificateRecipientDeathDate;
+        }
+        if (sacramentType !== SacramentType.FUNERAL && request.certificateRecipientBirthDate) {
+          where.birthDate = request.certificateRecipientBirthDate;
+        }
       }
 
       const record = await prisma.sacramentRecord.findFirst({ where });
@@ -314,12 +379,21 @@ router.post('/:id/issue', authenticate, async (req, res) => {
     return res.status(400).json({ message: 'Certificate already issued for this request' });
   }
 
+  const normalizedType = request.serviceType.toLowerCase();
+  const marriageRecipient =
+    request.marriageGroomName && request.marriageBrideName
+      ? `${request.marriageGroomName} & ${request.marriageBrideName}`
+      : undefined;
+  const recipientName = normalizedType.includes('marriage')
+    ? (marriageRecipient || request.certificateRecipientName || request.requesterName)
+    : (request.certificateRecipientName || request.details.slice(0, 50));
+
   const certificate = await prisma.$transaction(async (tx) => {
     const created = await tx.issuedCertificate.create({
       data: {
         requestId: request.id,
         type: request.serviceType,
-        recipientName: request.certificateRecipientName || request.details.slice(0, 50),
+        recipientName,
         requesterName: request.requesterName,
         issuedBy,
         deliveryMethod,

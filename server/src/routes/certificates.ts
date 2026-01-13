@@ -7,6 +7,7 @@ import { CertificateStatus } from '@prisma/client';
 import {
   generateBaptismCertificate,
   generateBurialCertificate,
+  generateMarriageCertificate,
   generateConfirmationCertificate
 } from '../services/certificateGenerator.js';
 
@@ -55,6 +56,8 @@ router.post('/:id/generate', authenticate, async (req, res) => {
       updated = await generateBaptismCertificate(id, req.user?.username ?? 'Staff');
     } else if (normalizedType.includes('confirmation')) {
       updated = await generateConfirmationCertificate(id, req.user?.username ?? 'Staff');
+    } else if (normalizedType.includes('marriage')) {
+      updated = await generateMarriageCertificate(id, req.user?.username ?? 'Staff');
     } else if (normalizedType.includes('funeral') || normalizedType.includes('burial') || normalizedType.includes('death')) {
       updated = await generateBurialCertificate(id, req.user?.username ?? 'Staff');
     } else {
@@ -68,6 +71,7 @@ router.post('/:id/generate', authenticate, async (req, res) => {
       message.includes('not found') ||
       message.includes('No baptism record') ||
       message.includes('No confirmation record') ||
+      message.includes('No marriage record') ||
       message.includes('No funeral record')
     ) {
       return res.status(400).json({ message });

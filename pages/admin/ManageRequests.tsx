@@ -55,7 +55,19 @@ const ManageRequests: React.FC = () => {
     residence: '',
     dateOfDeath: '',
     causeOfDeath: '',
-    placeOfBurial: ''
+    placeOfBurial: '',
+    groomName: '',
+    brideName: '',
+    groomAge: '',
+    brideAge: '',
+    groomResidence: '',
+    brideResidence: '',
+    groomNationality: '',
+    brideNationality: '',
+    groomFatherName: '',
+    brideFatherName: '',
+    groomMotherName: '',
+    brideMotherName: ''
   });
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
 
@@ -71,10 +83,13 @@ const ManageRequests: React.FC = () => {
   const requiresRegisterInfo =
     completionFormData.type === SacramentType.BAPTISM ||
     completionFormData.type === SacramentType.CONFIRMATION ||
-    completionFormData.type === SacramentType.FUNERAL;
+    completionFormData.type === SacramentType.FUNERAL ||
+    completionFormData.type === SacramentType.MARRIAGE;
   const isFuneral = completionFormData.type === SacramentType.FUNERAL;
+  const isMarriage = completionFormData.type === SacramentType.MARRIAGE;
   const showBaptismDateField = completionFormData.type === SacramentType.CONFIRMATION;
   const dateGridCols = requiresBaptismInfo ? 'md:grid-cols-3' : 'md:grid-cols-2';
+  const coupleDisplayName = formatCoupleName(completionFormData.groomName, completionFormData.brideName);
 
   const filteredRequests = requests.filter(req => {
     const matchesStatus = filterStatus === 'ALL' || req.status === filterStatus;
@@ -133,6 +148,9 @@ const ManageRequests: React.FC = () => {
   const normalizeName = (value?: string) =>
     (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
+  const formatCoupleName = (groom?: string, bride?: string) =>
+    [groom?.trim(), bride?.trim()].filter(Boolean).join(' & ');
+
   const findBaptismRecordForConfirmation = (req: ServiceRequest) => {
     const candidateName = normalizeName(req.confirmationCandidateName);
     const candidateBirthDate = toInputDate(req.confirmationCandidateBirthDate);
@@ -172,9 +190,14 @@ const ManageRequests: React.FC = () => {
         : undefined;
       const candidateName = req.confirmationCandidateName?.trim() || '';
       const funeralName = req.funeralDeceasedName?.trim() || '';
+      const groomName = req.marriageGroomName?.trim() || '';
+      const brideName = req.marriageBrideName?.trim() || '';
+      const coupleName = formatCoupleName(groomName, brideName);
       const prefilledName = sacramentType === SacramentType.FUNERAL
         ? funeralName
-        : (baptismRecord?.name ?? candidateName);
+        : sacramentType === SacramentType.MARRIAGE
+          ? coupleName
+          : (baptismRecord?.name ?? candidateName);
       const prefilledBirthDate = baptismRecord?.birthDate
         ? toInputDate(baptismRecord.birthDate)
         : (req.confirmationCandidateBirthDate || '');
@@ -209,7 +232,19 @@ const ManageRequests: React.FC = () => {
         residence: prefilledResidence,
         dateOfDeath: prefilledDateOfDeath,
         causeOfDeath: '',
-        placeOfBurial: prefilledPlaceOfBurial
+        placeOfBurial: prefilledPlaceOfBurial,
+        groomName,
+        brideName,
+        groomAge: '',
+        brideAge: '',
+        groomResidence: '',
+        brideResidence: '',
+        groomNationality: '',
+        brideNationality: '',
+        groomFatherName: '',
+        brideFatherName: '',
+        groomMotherName: '',
+        brideMotherName: ''
       });
       setIsCompletionModalOpen(true);
     } else {
@@ -293,6 +328,27 @@ const ManageRequests: React.FC = () => {
       );
     }
 
+    if (completionFormData.type === SacramentType.MARRIAGE) {
+      requiredFields.push(
+        { key: 'groomName', label: 'Groom name' },
+        { key: 'brideName', label: 'Bride name' },
+        { key: 'groomAge', label: 'Groom age' },
+        { key: 'brideAge', label: 'Bride age' },
+        { key: 'groomResidence', label: 'Groom residence' },
+        { key: 'brideResidence', label: 'Bride residence' },
+        { key: 'groomNationality', label: 'Groom nationality' },
+        { key: 'brideNationality', label: 'Bride nationality' },
+        { key: 'groomFatherName', label: "Groom father's name" },
+        { key: 'brideFatherName', label: "Bride father's name" },
+        { key: 'groomMotherName', label: "Groom mother's name" },
+        { key: 'brideMotherName', label: "Bride mother's name" },
+        { key: 'sponsors', label: 'Witnesses' },
+        { key: 'registerBook', label: 'Register book' },
+        { key: 'registerPage', label: 'Register page' },
+        { key: 'registerLine', label: 'Register line' }
+      );
+    }
+
     const missing = requiredFields
       .filter(({ key }) => {
         const value = completionFormData[key];
@@ -333,10 +389,13 @@ const ManageRequests: React.FC = () => {
       return;
     }
     setIsSavingCompletion(true);
+    const recordDetails = completionFormData.type === SacramentType.MARRIAGE
+      ? { ...completionFormData, name: formatCoupleName(completionFormData.groomName, completionFormData.brideName) }
+      : completionFormData;
     try {
       await updateRequest(completionTarget.id, {
         status: RequestStatus.COMPLETED,
-        recordDetails: completionFormData
+        recordDetails
       });
       setIsCompletionModalOpen(false);
       setCompletionTarget(null);
@@ -701,12 +760,15 @@ const ManageRequests: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {isMarriage ? 'Couple Name' : 'Recipient Name'}
+                  </label>
                   <input
                     type="text"
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.name ?? ''}
+                    value={isMarriage ? coupleDisplayName : (completionFormData.name ?? '')}
+                    readOnly={isMarriage}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, name: e.target.value })}
                   />
                 </div>
@@ -801,6 +863,151 @@ const ManageRequests: React.FC = () => {
                 </>
               )}
 
+              {isMarriage && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Groom Name</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.groomName ?? ''}
+                        onChange={(e) => setCompletionFormData({
+                          ...completionFormData,
+                          groomName: e.target.value,
+                          name: formatCoupleName(e.target.value, completionFormData.brideName)
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bride Name</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.brideName ?? ''}
+                        onChange={(e) => setCompletionFormData({
+                          ...completionFormData,
+                          brideName: e.target.value,
+                          name: formatCoupleName(completionFormData.groomName, e.target.value)
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Groom Age</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.groomAge ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, groomAge: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bride Age</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.brideAge ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, brideAge: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Groom Residence</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.groomResidence ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, groomResidence: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bride Residence</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.brideResidence ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, brideResidence: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Groom Nationality</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.groomNationality ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, groomNationality: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bride Nationality</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.brideNationality ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, brideNationality: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Groom Father</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.groomFatherName ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, groomFatherName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bride Father</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.brideFatherName ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, brideFatherName: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Groom Mother</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.groomMotherName ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, groomMotherName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bride Mother</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.brideMotherName ?? ''}
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, brideMotherName: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
               {requiresBaptismInfo && (
                 <div className={`grid grid-cols-1 ${showBaptismDateField ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
                   <div>
@@ -865,7 +1072,9 @@ const ManageRequests: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sponsors</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Sponsors
+                    </label>
                     <textarea
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                       rows={2}
@@ -876,6 +1085,20 @@ const ManageRequests: React.FC = () => {
                     />
                   </div>
                 </>
+              )}
+
+              {isMarriage && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Witnesses</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    rows={2}
+                    placeholder="List witnesses"
+                    value={completionFormData.sponsors ?? ''}
+                    required
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, sponsors: e.target.value })}
+                  />
+                </div>
               )}
 
               {requiresRegisterInfo && (

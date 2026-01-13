@@ -108,6 +108,9 @@ model ServiceRequest {
   funeralResidence                String?
   funeralDateOfDeath              DateTime?
   funeralPlaceOfBurial            String?
+  marriageGroomName               String?
+  marriageBrideName               String?
+  marriageDate                    DateTime?
   certificateRecipientName       String?
   certificateRecipientBirthDate  DateTime?
   certificateRecipientDeathDate  DateTime?
@@ -143,6 +146,18 @@ model SacramentRecord {
   dateOfDeath DateTime?
   causeOfDeath String?
   placeOfBurial String?
+  groomName   String?
+  brideName   String?
+  groomAge    String?
+  brideAge    String?
+  groomResidence String?
+  brideResidence String?
+  groomNationality String?
+  brideNationality String?
+  groomFatherName String?
+  brideFatherName String?
+  groomMotherName String?
+  brideMotherName String?
   isArchived  Boolean       @default(false)
   archivedAt  DateTime?
   archivedBy  String?
