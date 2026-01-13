@@ -120,13 +120,16 @@ const ManageRequests: React.FC = () => {
     return date.toISOString().split('T')[0];
   };
 
+  const normalizeName = (value?: string) =>
+    (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
   const findBaptismRecordForConfirmation = (req: ServiceRequest) => {
-    const candidateName = req.confirmationCandidateName?.trim();
-    const candidateBirthDate = req.confirmationCandidateBirthDate;
+    const candidateName = normalizeName(req.confirmationCandidateName);
+    const candidateBirthDate = toInputDate(req.confirmationCandidateBirthDate);
     if (!candidateName) return undefined;
     return records.find((rec) => {
       if (rec.type !== SacramentType.BAPTISM || rec.isArchived) return false;
-      if (rec.name.trim().toLowerCase() !== candidateName.toLowerCase()) return false;
+      if (normalizeName(rec.name) !== candidateName) return false;
       if (candidateBirthDate) {
         return toInputDate(rec.birthDate) === candidateBirthDate;
       }
@@ -168,12 +171,13 @@ const ManageRequests: React.FC = () => {
         ? toInputDate(baptismRecord.date)
         : '';
       const prefilledBaptismPlace = baptismRecord?.baptismPlace ?? parishPlaceDefault;
+      const prefilledOfficiant = baptismRecord?.officiant ?? '';
       setCompletionTarget(req);
       setCompletionFormData({
         name: prefilledName,
         date: possibleDate || '',
         type: sacramentType,
-        officiant: '',
+        officiant: prefilledOfficiant,
         details: '',
         baptismPlace: prefilledBaptismPlace,
         baptismDate: prefilledBaptismDate,
