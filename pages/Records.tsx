@@ -347,11 +347,12 @@ const Records: React.FC = () => {
                 renderField("Mother's Name", selectedRecord.motherName)
               ])}
 
-              {renderSection('Baptism Details', [
-                renderField('Baptism Date', formatDate(selectedRecord.baptismDate)),
-                renderField('Baptism Place', selectedRecord.baptismPlace),
-                renderField('Sponsors', selectedRecord.sponsors)
-              ])}
+              {(selectedRecord.type === SacramentType.BAPTISM || selectedRecord.type === SacramentType.CONFIRMATION) &&
+                renderSection('Baptism Details', [
+                  renderField('Baptism Date', formatDate(selectedRecord.baptismDate)),
+                  renderField('Baptism Place', selectedRecord.baptismPlace),
+                  renderField('Sponsors', selectedRecord.sponsors)
+                ])}
 
               {renderSection('Marriage Details', [
                 renderField('Groom Name', selectedRecord.groomName),
