@@ -824,8 +824,8 @@ export const generateBaptismCertificate = async (certificateId: string, uploaded
       certificate.recipientName ||
       certificate.request?.requesterName;
 
-    const birthDateFilter = certificate.request?.certificateRecipientBirthDate
-      ? new Date(certificate.request.certificateRecipientBirthDate)
+    const deathDateFilter = certificate.request?.certificateRecipientDeathDate
+      ? new Date(certificate.request.certificateRecipientDeathDate)
       : undefined;
 
     const fallback = await prisma.sacramentRecord.findFirst({
@@ -833,7 +833,7 @@ export const generateBaptismCertificate = async (certificateId: string, uploaded
         type: SacramentType.BAPTISM,
         isArchived: false,
         name: recipientName,
-        ...(birthDateFilter ? { birthDate: birthDateFilter } : {})
+        ...(deathDateFilter ? { dateOfDeath: deathDateFilter } : {})
       },
       orderBy: { date: 'desc' }
     });

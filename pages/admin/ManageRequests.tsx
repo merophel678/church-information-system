@@ -164,13 +164,17 @@ const ManageRequests: React.FC = () => {
       });
       setIsStatusModalOpen(true);
     } else if (newStatus === RequestStatus.COMPLETED && req.category === RequestCategory.SACRAMENT) {
-      const possibleDate = req.confirmedSchedule?.split(' ')[0] || req.preferredDate || new Date().toISOString().split('T')[0];
+      const possibleDateSource = req.confirmedSchedule?.split(' ')[0] || req.preferredDate || new Date().toISOString();
+      const possibleDate = toInputDate(possibleDateSource) || new Date().toISOString().split('T')[0];
       const sacramentType = inferSacramentType(req.serviceType);
       const baptismRecord = sacramentType === SacramentType.CONFIRMATION
         ? findBaptismRecordForConfirmation(req)
         : undefined;
       const candidateName = req.confirmationCandidateName?.trim() || '';
-      const prefilledName = baptismRecord?.name ?? candidateName;
+      const funeralName = req.funeralDeceasedName?.trim() || '';
+      const prefilledName = sacramentType === SacramentType.FUNERAL
+        ? funeralName
+        : (baptismRecord?.name ?? candidateName);
       const prefilledBirthDate = baptismRecord?.birthDate
         ? toInputDate(baptismRecord.birthDate)
         : (req.confirmationCandidateBirthDate || '');
@@ -182,6 +186,9 @@ const ManageRequests: React.FC = () => {
         : '';
       const prefilledBaptismPlace = baptismRecord?.baptismPlace ?? parishPlaceDefault;
       const prefilledOfficiant = baptismRecord?.officiant ?? '';
+      const prefilledResidence = req.funeralResidence?.trim() || '';
+      const prefilledDateOfDeath = req.funeralDateOfDeath ? toInputDate(req.funeralDateOfDeath) : '';
+      const prefilledPlaceOfBurial = req.funeralPlaceOfBurial?.trim() || '';
       setCompletionTarget(req);
       setCompletionFormData({
         name: prefilledName,
@@ -199,10 +206,10 @@ const ManageRequests: React.FC = () => {
         registerBook: '',
         registerPage: '',
         registerLine: '',
-        residence: '',
-        dateOfDeath: '',
+        residence: prefilledResidence,
+        dateOfDeath: prefilledDateOfDeath,
         causeOfDeath: '',
-        placeOfBurial: ''
+        placeOfBurial: prefilledPlaceOfBurial
       });
       setIsCompletionModalOpen(true);
     } else {

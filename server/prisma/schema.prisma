@@ -104,8 +104,13 @@ model ServiceRequest {
   details            String
   confirmationCandidateName       String?
   confirmationCandidateBirthDate  DateTime?
+  funeralDeceasedName             String?
+  funeralResidence                String?
+  funeralDateOfDeath              DateTime?
+  funeralPlaceOfBurial            String?
   certificateRecipientName       String?
   certificateRecipientBirthDate  DateTime?
+  certificateRecipientDeathDate  DateTime?
   requesterRelationship          String?
   status             RequestStatus      @default(PENDING)
   submissionDate     DateTime           @default(now())

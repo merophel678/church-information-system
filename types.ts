@@ -92,8 +92,13 @@ export interface ServiceRequest {
   details: string; // Purpose or additional info
   confirmationCandidateName?: string;
   confirmationCandidateBirthDate?: string;
+  funeralDeceasedName?: string;
+  funeralResidence?: string;
+  funeralDateOfDeath?: string;
+  funeralPlaceOfBurial?: string;
   certificateRecipientName?: string;
   certificateRecipientBirthDate?: string;
+  certificateRecipientDeathDate?: string;
   requesterRelationship?: string;
   status: RequestStatus;
   submissionDate: string;

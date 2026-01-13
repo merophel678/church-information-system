@@ -13,18 +13,29 @@ const RequestService: React.FC = () => {
   
   const [category, setCategory] = useState<RequestCategory>(RequestCategory.SACRAMENT);
   const [serviceType, setServiceType] = useState('Baptism');
-  
-  const [formData, setFormData] = useState({
+
+  const initialFormState = {
     requesterName: '',
     contactInfo: '',
     preferredDate: '',
     details: '',
+    funeralDeceasedName: '',
+    funeralResidence: '',
+    funeralDateOfDeath: '',
+    funeralPlaceOfBurial: '',
     certificateRecipientName: '',
     certificateRecipientBirthDate: '',
+    certificateRecipientDeathDate: '',
     requesterRelationship: '',
     confirmationCandidateName: '',
     confirmationCandidateBirthDate: ''
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  const isConfirmation = category === RequestCategory.SACRAMENT && serviceType.toLowerCase().includes('confirmation');
+  const isFuneral = category === RequestCategory.SACRAMENT && serviceType.toLowerCase().includes('funeral');
+  const isDeathCertificate = category === RequestCategory.CERTIFICATE && serviceType.toLowerCase().includes('death');
 
   const handleCategoryChange = (newCategory: RequestCategory) => {
     setCategory(newCategory);
@@ -34,11 +45,7 @@ const RequestService: React.FC = () => {
     } else {
       setServiceType('Baptismal Certificate');
     }
-    setFormData((prev) => ({
-      ...prev,
-      confirmationCandidateName: '',
-      confirmationCandidateBirthDate: ''
-    }));
+    setFormData(initialFormState);
   };
 
   const isValidContact = (value: string) => {
@@ -58,17 +65,47 @@ const RequestService: React.FC = () => {
       setIsSubmitting(false);
       return;
     }
-    if (formData.preferredDate && formData.preferredDate < today) {
-      setError('Preferred date cannot be in the past.');
-      setIsSubmitting(false);
-      return;
+    if (formData.preferredDate) {
+      const preferred = new Date(formData.preferredDate);
+      if (Number.isNaN(preferred.getTime())) {
+        setError('Preferred date is invalid.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (isFuneral) {
+        if (preferred < new Date()) {
+          setError('Preferred date/time cannot be in the past.');
+          setIsSubmitting(false);
+          return;
+        }
+      } else if (preferred.toISOString().split('T')[0] < today) {
+        setError('Preferred date cannot be in the past.');
+        setIsSubmitting(false);
+        return;
+      }
     }
     if (category === RequestCategory.CERTIFICATE && !formData.certificateRecipientName.trim()) {
       setError('Please enter the certificate holder\'s full name.');
       setIsSubmitting(false);
       return;
     }
-    const isConfirmation = category === RequestCategory.SACRAMENT && serviceType.toLowerCase().includes('confirmation');
+    if (isDeathCertificate) {
+      if (!formData.certificateRecipientDeathDate) {
+        setError('Please provide the date of death.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (formData.certificateRecipientDeathDate > today) {
+        setError('Date of death cannot be in the future.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.requesterRelationship.trim()) {
+        setError('Please specify your relationship to the deceased.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
     if (isConfirmation) {
       if (!formData.confirmationCandidateName.trim() || !formData.confirmationCandidateBirthDate) {
         setError('Confirmation candidate name and birth date are required.');
@@ -77,6 +114,43 @@ const RequestService: React.FC = () => {
       }
       if (formData.confirmationCandidateBirthDate > today) {
         setError('Birth date cannot be in the future.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+    if (isFuneral) {
+      if (!formData.funeralDeceasedName.trim()) {
+        setError('Please enter the deceased\'s full name.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.funeralResidence.trim()) {
+        setError('Please enter the residence/address of the deceased.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.funeralDateOfDeath) {
+        setError('Please provide the date of death.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (formData.funeralDateOfDeath > today) {
+        setError('Date of death cannot be in the future.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.funeralPlaceOfBurial.trim()) {
+        setError('Please enter the place of burial.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.requesterRelationship.trim()) {
+        setError('Please specify your relationship to the deceased.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.preferredDate) {
+        setError('Please provide a preferred date/time for the funeral blessing.');
         setIsSubmitting(false);
         return;
       }
@@ -91,9 +165,15 @@ const RequestService: React.FC = () => {
         details: formData.details,
         confirmationCandidateName: isConfirmation ? formData.confirmationCandidateName : undefined,
         confirmationCandidateBirthDate: isConfirmation ? formData.confirmationCandidateBirthDate : undefined,
+        funeralDeceasedName: isFuneral ? formData.funeralDeceasedName : undefined,
+        funeralResidence: isFuneral ? formData.funeralResidence : undefined,
+        funeralDateOfDeath: isFuneral ? formData.funeralDateOfDeath : undefined,
+        funeralPlaceOfBurial: isFuneral ? formData.funeralPlaceOfBurial : undefined,
         certificateRecipientName: category === RequestCategory.CERTIFICATE ? formData.certificateRecipientName : undefined,
-        certificateRecipientBirthDate: category === RequestCategory.CERTIFICATE ? formData.certificateRecipientBirthDate : undefined,
-        requesterRelationship: category === RequestCategory.CERTIFICATE ? formData.requesterRelationship : undefined
+        certificateRecipientBirthDate:
+          category === RequestCategory.CERTIFICATE && !isDeathCertificate ? formData.certificateRecipientBirthDate : undefined,
+        certificateRecipientDeathDate: isDeathCertificate ? formData.certificateRecipientDeathDate : undefined,
+        requesterRelationship: isFuneral || category === RequestCategory.CERTIFICATE ? formData.requesterRelationship : undefined
       });
       if (created.status === RequestStatus.REJECTED) {
         setRejectionMessage(created.adminNotes || 'Your request was received but cannot be processed at this time.');
@@ -123,17 +203,7 @@ const RequestService: React.FC = () => {
         <button 
           onClick={() => {
             setSubmitted(false);
-            setFormData({
-              requesterName: '',
-              contactInfo: '',
-              preferredDate: '',
-              details: '',
-              certificateRecipientName: '',
-              certificateRecipientBirthDate: '',
-              requesterRelationship: '',
-              confirmationCandidateName: '',
-              confirmationCandidateBirthDate: ''
-            });
+            setFormData(initialFormState);
           }}
           className="bg-parish-blue text-white px-8 py-3 rounded-full font-medium hover:bg-blue-800 transition"
         >
@@ -202,13 +272,21 @@ const RequestService: React.FC = () => {
                 onChange={(e) => {
                   const value = e.target.value;
                   setServiceType(value);
-                  if (!value.toLowerCase().includes('confirmation')) {
-                    setFormData((prev) => ({
-                      ...prev,
-                      confirmationCandidateName: '',
-                      confirmationCandidateBirthDate: ''
-                    }));
-                  }
+                  const normalized = value.toLowerCase();
+                  const nextIsConfirmation = category === RequestCategory.SACRAMENT && normalized.includes('confirmation');
+                  const nextIsFuneral = category === RequestCategory.SACRAMENT && normalized.includes('funeral');
+                  const nextIsDeathCertificate = category === RequestCategory.CERTIFICATE && normalized.includes('death');
+                  setFormData((prev) => ({
+                    ...prev,
+                    confirmationCandidateName: nextIsConfirmation ? prev.confirmationCandidateName : '',
+                    confirmationCandidateBirthDate: nextIsConfirmation ? prev.confirmationCandidateBirthDate : '',
+                    funeralDeceasedName: nextIsFuneral ? prev.funeralDeceasedName : '',
+                    funeralResidence: nextIsFuneral ? prev.funeralResidence : '',
+                    funeralDateOfDeath: nextIsFuneral ? prev.funeralDateOfDeath : '',
+                    funeralPlaceOfBurial: nextIsFuneral ? prev.funeralPlaceOfBurial : '',
+                    certificateRecipientDeathDate: nextIsDeathCertificate ? prev.certificateRecipientDeathDate : '',
+                    certificateRecipientBirthDate: nextIsDeathCertificate ? '' : prev.certificateRecipientBirthDate
+                  }));
                 }}
               >
                 {category === RequestCategory.SACRAMENT ? (
@@ -263,7 +341,9 @@ const RequestService: React.FC = () => {
             {category === RequestCategory.CERTIFICATE && (
               <>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Certificate Holder (Full Name)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {isDeathCertificate ? 'Deceased Full Name (certificate holder)' : 'Certificate Holder (Full Name)'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -273,31 +353,60 @@ const RequestService: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, certificateRecipientName: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Holder Birth Date (optional)</label>
-                  <input
-                    type="date"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={formData.certificateRecipientBirthDate}
-                    onChange={(e) => setFormData({ ...formData, certificateRecipientBirthDate: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Relationship to Holder (optional)</label>
-                  <input
-                    type="text"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    placeholder="e.g., Parent, Guardian"
-                    value={formData.requesterRelationship}
-                    onChange={(e) => setFormData({ ...formData, requesterRelationship: e.target.value })}
-                  />
-                </div>
+                {isDeathCertificate ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Death</label>
+                      <input
+                        type="date"
+                        required
+                        max={today}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.certificateRecipientDeathDate}
+                        onChange={(e) => setFormData({ ...formData, certificateRecipientDeathDate: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Relationship to the Deceased</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        placeholder="e.g., Child, Spouse"
+                        value={formData.requesterRelationship}
+                        onChange={(e) => setFormData({ ...formData, requesterRelationship: e.target.value })}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Holder Birth Date (optional)</label>
+                      <input
+                        type="date"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.certificateRecipientBirthDate}
+                        onChange={(e) => setFormData({ ...formData, certificateRecipientBirthDate: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Relationship to Holder (optional)</label>
+                      <input
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        placeholder="e.g., Parent, Guardian"
+                        value={formData.requesterRelationship}
+                        onChange={(e) => setFormData({ ...formData, requesterRelationship: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 
             {category === RequestCategory.SACRAMENT && (
               <>
-                {serviceType.toLowerCase().includes('confirmation') && (
+                {isConfirmation && (
                   <>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Confirmation Candidate (Full Name)</label>
@@ -323,38 +432,110 @@ const RequestService: React.FC = () => {
                     </div>
                   </>
                 )}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
-                  <input 
-                    type="date" 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    min={today}
-                    value={formData.preferredDate}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({...formData, preferredDate: value});
-                      if (error && value >= today) {
-                        setError('');
-                      }
-                    }}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Subject to availability and confirmation by the parish office.</p>
-                </div>
+                {isFuneral ? (
+                  <>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Deceased Full Name</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.funeralDeceasedName}
+                        onChange={(e) => setFormData({ ...formData, funeralDeceasedName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Residence/Address</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.funeralResidence}
+                        onChange={(e) => setFormData({ ...formData, funeralResidence: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Death</label>
+                      <input
+                        type="date"
+                        required
+                        max={today}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.funeralDateOfDeath}
+                        onChange={(e) => setFormData({ ...formData, funeralDateOfDeath: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Place of Burial</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.funeralPlaceOfBurial}
+                        onChange={(e) => setFormData({ ...formData, funeralPlaceOfBurial: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Relationship to the Deceased</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        placeholder="e.g., Child, Spouse"
+                        value={formData.requesterRelationship}
+                        onChange={(e) => setFormData({ ...formData, requesterRelationship: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date/Time</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={formData.preferredDate}
+                        onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Subject to availability and confirmation by the parish office.</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
+                    <input 
+                      type="date" 
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                      min={today}
+                      value={formData.preferredDate}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData({...formData, preferredDate: value});
+                        if (error && value >= today) {
+                          setError('');
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Subject to availability and confirmation by the parish office.</p>
+                  </div>
+                )}
               </>
             )}
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {category === RequestCategory.SACRAMENT 
-                  ? 'Additional Details (Name of child/couple, special requests)' 
-                  : 'Purpose & Details (Name on record, approximate date of sacrament)'}
+                {isFuneral || isDeathCertificate
+                  ? 'Additional Notes (optional)'
+                  : category === RequestCategory.SACRAMENT
+                    ? 'Additional Details (Name of child/couple, special requests)'
+                    : 'Purpose & Details (Name on record, approximate date of sacrament)'}
               </label>
               <textarea 
-                required
+                required={!isFuneral && !isDeathCertificate}
                 rows={4}
-                placeholder={category === RequestCategory.SACRAMENT 
-                  ? "e.g., Child's name is John Doe. We prefer a morning schedule." 
-                  : "e.g., For marriage license requirements. Baptized around 1995."}
+                placeholder={isFuneral || isDeathCertificate
+                  ? 'Any additional notes for the parish office (optional)'
+                  : category === RequestCategory.SACRAMENT 
+                    ? "e.g., Child's name is John Doe. We prefer a morning schedule." 
+                    : "e.g., For marriage license requirements. Baptized around 1995."}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                 value={formData.details}
                 onChange={(e) => setFormData({...formData, details: e.target.value})}

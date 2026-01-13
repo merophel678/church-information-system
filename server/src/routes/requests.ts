@@ -10,7 +10,7 @@ const mapServiceToSacramentType = (service: string): SacramentType | null => {
   if (normalized.includes('baptism')) return SacramentType.BAPTISM;
   if (normalized.includes('confirmation')) return SacramentType.CONFIRMATION;
   if (normalized.includes('marriage')) return SacramentType.MARRIAGE;
-  if (normalized.includes('funeral')) return SacramentType.FUNERAL;
+  if (normalized.includes('funeral') || normalized.includes('burial') || normalized.includes('death')) return SacramentType.FUNERAL;
   return null;
 };
 
@@ -31,18 +31,31 @@ router.post('/', async (req, res) => {
     details,
     confirmationCandidateName,
     confirmationCandidateBirthDate,
+    funeralDeceasedName,
+    funeralResidence,
+    funeralDateOfDeath,
+    funeralPlaceOfBurial,
     certificateRecipientName,
     certificateRecipientBirthDate,
+    certificateRecipientDeathDate,
     requesterRelationship
   } = req.body;
 
-  if (!category || !serviceType || !requesterName || !contactInfo || !details) {
+  if (!category || !serviceType || !requesterName || !contactInfo) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
   const normalizedService = String(serviceType || '').toLowerCase();
   const isConfirmationRequest =
     category === RequestCategory.SACRAMENT && normalizedService.includes('confirmation');
+  const isFuneralRequest =
+    category === RequestCategory.SACRAMENT && normalizedService.includes('funeral');
+  const isDeathCertificate =
+    category === RequestCategory.CERTIFICATE && normalizedService.includes('death');
+
+  if (!details && !isFuneralRequest && !isDeathCertificate) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
 
   if (isConfirmationRequest && (!confirmationCandidateName || !confirmationCandidateBirthDate)) {
     return res.status(400).json({ message: 'Confirmation candidate name and birth date are required' });
@@ -50,6 +63,23 @@ router.post('/', async (req, res) => {
 
   if (category === RequestCategory.CERTIFICATE && !certificateRecipientName) {
     return res.status(400).json({ message: 'Certificate recipient name is required for certificate requests' });
+  }
+
+  if (isDeathCertificate && !certificateRecipientDeathDate) {
+    return res.status(400).json({ message: 'Date of death is required for death certificate requests' });
+  }
+
+  if (isDeathCertificate && !requesterRelationship) {
+    return res.status(400).json({ message: 'Relationship to the deceased is required for death certificate requests' });
+  }
+
+  if (isFuneralRequest) {
+    if (!funeralDeceasedName || !funeralResidence || !funeralDateOfDeath || !funeralPlaceOfBurial) {
+      return res.status(400).json({ message: 'Funeral requests require deceased name, residence, date of death, and place of burial' });
+    }
+    if (!requesterRelationship) {
+      return res.status(400).json({ message: 'Relationship to the deceased is required for funeral requests' });
+    }
   }
 
   let confirmationStatus: RequestStatus | undefined;
@@ -76,11 +106,16 @@ router.post('/', async (req, res) => {
       requesterName,
       contactInfo,
       preferredDate,
-      details,
+      details: details ?? '',
       confirmationCandidateName,
       confirmationCandidateBirthDate: confirmationCandidateBirthDate ? new Date(confirmationCandidateBirthDate) : undefined,
+      funeralDeceasedName,
+      funeralResidence,
+      funeralDateOfDeath: funeralDateOfDeath ? new Date(funeralDateOfDeath) : undefined,
+      funeralPlaceOfBurial,
       certificateRecipientName,
       certificateRecipientBirthDate: certificateRecipientBirthDate ? new Date(certificateRecipientBirthDate) : undefined,
+      certificateRecipientDeathDate: certificateRecipientDeathDate ? new Date(certificateRecipientDeathDate) : undefined,
       requesterRelationship,
       status: confirmationStatus ?? RequestStatus.PENDING,
       adminNotes: confirmationNote
@@ -104,9 +139,14 @@ router.put('/:id', authenticate, async (req, res) => {
     adminNotes: string | null;
     certificateRecipientName?: string;
     certificateRecipientBirthDate?: string;
+    certificateRecipientDeathDate?: string;
     requesterRelationship?: string;
     confirmationCandidateName?: string;
     confirmationCandidateBirthDate?: string;
+    funeralDeceasedName?: string;
+    funeralResidence?: string;
+    funeralDateOfDeath?: string;
+    funeralPlaceOfBurial?: string;
   }> & {
     recordDetails?: {
       name?: string;
@@ -145,6 +185,12 @@ router.put('/:id', authenticate, async (req, res) => {
         : undefined,
       certificateRecipientBirthDate: updates.certificateRecipientBirthDate
         ? new Date(updates.certificateRecipientBirthDate)
+        : undefined,
+      certificateRecipientDeathDate: updates.certificateRecipientDeathDate
+        ? new Date(updates.certificateRecipientDeathDate)
+        : undefined,
+      funeralDateOfDeath: updates.funeralDateOfDeath
+        ? new Date(updates.funeralDateOfDeath)
         : undefined
     }
   });
@@ -238,6 +284,27 @@ router.post('/:id/issue', authenticate, async (req, res) => {
   const request = await prisma.serviceRequest.findUnique({ where: { id } });
   if (!request) {
     return res.status(404).json({ message: 'Request not found' });
+  }
+
+  if (request.category === RequestCategory.CERTIFICATE) {
+    const sacramentType = mapServiceToSacramentType(request.serviceType);
+    if (sacramentType) {
+      const where: any = { type: sacramentType, isArchived: false };
+      if (request.certificateRecipientName) {
+        where.name = request.certificateRecipientName;
+      }
+      if (sacramentType === SacramentType.FUNERAL && request.certificateRecipientDeathDate) {
+        where.dateOfDeath = request.certificateRecipientDeathDate;
+      }
+      if (sacramentType !== SacramentType.FUNERAL && request.certificateRecipientBirthDate) {
+        where.birthDate = request.certificateRecipientBirthDate;
+      }
+
+      const record = await prisma.sacramentRecord.findFirst({ where });
+      if (!record) {
+        return res.status(400).json({ message: 'No sacrament record found for this certificate request' });
+      }
+    }
   }
 
   const existingCert = await prisma.issuedCertificate.findFirst({

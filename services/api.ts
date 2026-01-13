@@ -80,8 +80,13 @@ export const api = {
     details: string;
     confirmationCandidateName?: string;
     confirmationCandidateBirthDate?: string;
+    funeralDeceasedName?: string;
+    funeralResidence?: string;
+    funeralDateOfDeath?: string;
+    funeralPlaceOfBurial?: string;
     certificateRecipientName?: string;
     certificateRecipientBirthDate?: string;
+    certificateRecipientDeathDate?: string;
     requesterRelationship?: string;
   }) => apiRequest<ServiceRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
   updateRequest: (
