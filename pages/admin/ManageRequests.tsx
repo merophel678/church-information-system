@@ -169,6 +169,44 @@ const ManageRequests: React.FC = () => {
   const handleCompletionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!completionTarget) return;
+    const requiredFields: Array<{ key: keyof SacramentRecordDetails; label: string }> = [
+      { key: 'name', label: 'Recipient name' },
+      { key: 'date', label: 'Date of sacrament' },
+      { key: 'officiant', label: 'Officiant' }
+    ];
+
+    if (completionFormData.type === SacramentType.BAPTISM) {
+      requiredFields.push(
+        { key: 'fatherName', label: "Father's name" },
+        { key: 'motherName', label: "Mother's name" },
+        { key: 'birthDate', label: 'Birth date' },
+        { key: 'birthPlace', label: 'Birth place' },
+        { key: 'baptismPlace', label: 'Place of baptism' },
+        { key: 'sponsors', label: 'Sponsors' },
+        { key: 'registerBook', label: 'Register book' },
+        { key: 'registerPage', label: 'Register page' },
+        { key: 'registerLine', label: 'Register line' }
+      );
+    }
+
+    const missing = requiredFields
+      .filter(({ key }) => {
+        const value = completionFormData[key];
+        if (typeof value === 'string') {
+          return !value.trim();
+        }
+        return !value;
+      })
+      .map(({ label }) => label);
+
+    if (missing.length > 0) {
+      await alert({
+        title: 'Missing required fields',
+        message: `Please fill out: ${missing.join(', ')}.`
+      });
+      return;
+    }
+
     if (completionFormData.birthDate && completionFormData.date && completionFormData.birthDate > completionFormData.date) {
       await alert({
         title: 'Invalid birth date',
@@ -569,6 +607,7 @@ const ManageRequests: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.birthDate ?? ''}
                     max={completionFormData.date || undefined}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, birthDate: e.target.value })}
                   />
                 </div>
@@ -592,6 +631,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.birthPlace ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, birthPlace: e.target.value })}
                   />
                 </div>
@@ -601,6 +641,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.baptismPlace ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, baptismPlace: e.target.value })}
                   />
                 </div>
@@ -613,6 +654,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.fatherName ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, fatherName: e.target.value })}
                   />
                 </div>
@@ -622,21 +664,23 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.motherName ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, motherName: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sponsors</label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                  rows={2}
-                  placeholder="List sponsors/godparents"
-                  value={completionFormData.sponsors ?? ''}
-                  onChange={(e) => setCompletionFormData({ ...completionFormData, sponsors: e.target.value })}
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sponsors</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                    rows={2}
+                    placeholder="List sponsors/godparents"
+                    value={completionFormData.sponsors ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
+                    onChange={(e) => setCompletionFormData({ ...completionFormData, sponsors: e.target.value })}
+                  />
+                </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -645,6 +689,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.registerBook ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, registerBook: e.target.value })}
                   />
                 </div>
@@ -654,6 +699,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.registerPage ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, registerPage: e.target.value })}
                   />
                 </div>
@@ -663,6 +709,7 @@ const ManageRequests: React.FC = () => {
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={completionFormData.registerLine ?? ''}
+                    required={completionFormData.type === SacramentType.BAPTISM}
                     onChange={(e) => setCompletionFormData({ ...completionFormData, registerLine: e.target.value })}
                   />
                 </div>
