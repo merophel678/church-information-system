@@ -115,6 +115,9 @@ export interface ServiceRequest {
   certificateRecipientBirthDate?: string;
   certificateRecipientDeathDate?: string;
   requesterRelationship?: string;
+  recordId?: string;
+  isReissue?: boolean;
+  reissueReason?: string;
   status: RequestStatus;
   submissionDate: string;
   // New fields for status logic

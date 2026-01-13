@@ -91,6 +91,7 @@ export const api = {
     certificateRecipientBirthDate?: string;
     certificateRecipientDeathDate?: string;
     requesterRelationship?: string;
+    reissueReason?: string;
   }) => apiRequest<ServiceRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
   updateRequest: (
     id: string,

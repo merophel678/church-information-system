@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../../components/Icons';
 import { useParish } from '../../context/ParishContext';
-import { CertificateStatus, IssuedCertificate } from '../../types';
+import { CertificateStatus, IssuedCertificate, RequestStatus, ServiceRequest } from '../../types';
 import { formatDate } from '../../utils/date';
 
 const CertificateRegistry: React.FC = () => {
-  const { issuedCertificates, downloadCertificateFile, generateCertificate } = useParish();
+  const { issuedCertificates, requests, downloadCertificateFile, generateCertificate } = useParish();
   const [searchTerm, setSearchTerm] = useState('');
   const [downloadError, setDownloadError] = useState('');
   const [generateError, setGenerateError] = useState('');
@@ -18,6 +18,7 @@ const CertificateRegistry: React.FC = () => {
   const [customEnd, setCustomEnd] = useState('');
 
   const searchLower = searchTerm.toLowerCase();
+  const requestById = new Map(requests.map((req) => [req.id, req]));
 
   const parseDateInput = (value: string, endOfDay = false) => {
     if (!value) return null;
@@ -73,7 +74,57 @@ const CertificateRegistry: React.FC = () => {
     return true;
   };
 
-  const filteredCertificates = issuedCertificates.filter((cert) => {
+  const groupedCertificates = issuedCertificates.reduce((acc, cert) => {
+    const request = requestById.get(cert.requestId);
+    const recordKey = request?.recordId ?? `${cert.type.toLowerCase()}::${cert.recipientName.toLowerCase()}`;
+    if (!acc.has(recordKey)) {
+      acc.set(recordKey, {
+        key: recordKey,
+        recordId: request?.recordId,
+        certificates: [],
+        requests: []
+      });
+    }
+    acc.get(recordKey)?.certificates.push(cert);
+    if (request) {
+      acc.get(recordKey)?.requests.push(request);
+    }
+    return acc;
+  }, new Map<string, { key: string; recordId?: string; certificates: IssuedCertificate[]; requests: ServiceRequest[] }>());
+
+  const certificateGroups = Array.from(groupedCertificates.values()).map((group) => {
+    const sorted = [...group.certificates].sort(
+      (a, b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime()
+    );
+    const latest = sorted[0];
+    const latestUploaded = sorted
+      .filter((cert) => cert.status === CertificateStatus.UPLOADED)
+      .sort((a, b) => {
+        const aTime = a.uploadedAt ? new Date(a.uploadedAt).getTime() : new Date(a.dateIssued).getTime();
+        const bTime = b.uploadedAt ? new Date(b.uploadedAt).getTime() : new Date(b.dateIssued).getTime();
+        return bTime - aTime;
+      })[0];
+    const requestCount = group.recordId
+      ? requests.filter(
+          (req) =>
+            req.recordId === group.recordId &&
+            (req.status === RequestStatus.APPROVED || req.status === RequestStatus.COMPLETED)
+        ).length
+      : group.requests.filter(
+          (req) => req.status === RequestStatus.APPROVED || req.status === RequestStatus.COMPLETED
+        ).length;
+
+    return {
+      ...group,
+      latest,
+      latestUploaded,
+      issueCount: group.certificates.length,
+      requestCount
+    };
+  });
+
+  const filteredGroups = certificateGroups.filter((group) => {
+    const cert = group.latest;
     const matchesSearch = [cert.recipientName, cert.requesterName, cert.type]
       .join(' ')
       .toLowerCase()
@@ -108,9 +159,9 @@ const CertificateRegistry: React.FC = () => {
     { label: 'Generated', value: 'GENERATED' }
   ];
 
-  const pendingUploads = issuedCertificates.filter((cert) => cert.status === CertificateStatus.PENDING_UPLOAD).length;
-  const completedUploads = issuedCertificates.filter((cert) => cert.status === CertificateStatus.UPLOADED).length;
-  const totalCertificates = issuedCertificates.length;
+  const pendingUploads = certificateGroups.filter((group) => group.latest.status === CertificateStatus.PENDING_UPLOAD).length;
+  const completedUploads = certificateGroups.filter((group) => group.latest.status === CertificateStatus.UPLOADED).length;
+  const totalCertificates = certificateGroups.length;
 
   const handleGenerate = async (cert: IssuedCertificate) => {
     setGenerateError('');
@@ -294,7 +345,7 @@ const CertificateRegistry: React.FC = () => {
 
         <div className="px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-gray-100">
           <div className="text-xs text-gray-500">
-            Showing {filteredCertificates.length} of {issuedCertificates.length} certificates
+            Showing {filteredGroups.length} of {totalCertificates} certificates
           </div>
           <div className="flex flex-wrap gap-2">
             {statusChips.map((chip) => {
@@ -326,21 +377,31 @@ const CertificateRegistry: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredCertificates.map((cert) => (
-                <tr key={cert.id} className="hover:bg-gray-50 transition">
+              {filteredGroups.map((group) => {
+                const cert = group.latest;
+                const downloadTarget = group.latestUploaded ?? cert;
+                return (
+                <tr key={group.key} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-4 text-sm text-gray-500 font-mono">#{cert.id.slice(0, 8)}</td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-semibold text-gray-900">{cert.type}</div>
                     <div className="text-xs text-gray-500">Requested by {cert.requesterName}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-gray-600">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">Issues: {group.issueCount}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">Requests: {group.requestCount}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-semibold text-gray-900">{cert.recipientName}</div>
+                    {group.issueCount > 1 && (
+                      <div className="text-xs text-amber-700 mt-1">Reissued {group.issueCount - 1}x</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     <div>Issued: {formatDate(cert.dateIssued)}</div>
-                    {cert.uploadedAt && (
+                    {downloadTarget.status === CertificateStatus.UPLOADED && downloadTarget.uploadedAt && (
                       <div className="text-xs text-gray-500">
-                        Uploaded: {formatDate(cert.uploadedAt)} {cert.uploadedBy && `by ${cert.uploadedBy}`}
+                        Last uploaded: {formatDate(downloadTarget.uploadedAt)} {downloadTarget.uploadedBy && `by ${downloadTarget.uploadedBy}`}
                       </div>
                     )}
                   </td>
@@ -353,7 +414,7 @@ const CertificateRegistry: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-medium space-y-2">
-                    {cert.status === CertificateStatus.PENDING_UPLOAD ? (
+                    {cert.status === CertificateStatus.PENDING_UPLOAD && (
                       <button
                         onClick={() => handleGenerate(cert)}
                         disabled={
@@ -373,9 +434,10 @@ const CertificateRegistry: React.FC = () => {
                           </>
                         )}
                       </button>
-                    ) : (
+                    )}
+                    {downloadTarget.status === CertificateStatus.UPLOADED && (
                       <button
-                        onClick={() => handleDownload(cert)}
+                        onClick={() => handleDownload(downloadTarget)}
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-parish-blue text-white hover:bg-blue-800 transition text-xs"
                       >
                         <Icons.Download size={14} /> Download
@@ -383,8 +445,8 @@ const CertificateRegistry: React.FC = () => {
                     )}
                   </td>
                 </tr>
-              ))}
-              {filteredCertificates.length === 0 && (
+              )})}
+              {filteredGroups.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     No certificates found matching your search.

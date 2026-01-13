@@ -115,6 +115,10 @@ model ServiceRequest {
   certificateRecipientBirthDate  DateTime?
   certificateRecipientDeathDate  DateTime?
   requesterRelationship          String?
+  recordId           String?
+  record             SacramentRecord? @relation("CertificateRequestRecord", fields: [recordId], references: [id])
+  isReissue          Boolean            @default(false)
+  reissueReason      String?
   status             RequestStatus      @default(PENDING)
   submissionDate     DateTime           @default(now())
   confirmedSchedule  String?
@@ -166,6 +170,7 @@ model SacramentRecord {
   updatedAt   DateTime      @updatedAt
   requestId   String?
   request     ServiceRequest? @relation(fields: [requestId], references: [id])
+  certificateRequests ServiceRequest[] @relation("CertificateRequestRecord")
 }
 
 model IssuedCertificate {

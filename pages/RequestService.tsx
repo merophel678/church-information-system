@@ -30,6 +30,7 @@ const RequestService: React.FC = () => {
     certificateRecipientBirthDate: '',
     certificateRecipientDeathDate: '',
     requesterRelationship: '',
+    reissueReason: '',
     confirmationCandidateName: '',
     confirmationCandidateBirthDate: ''
   };
@@ -58,6 +59,20 @@ const RequestService: React.FC = () => {
     const phone = /^(?:\+639|09)\d{9}$/; // PH mobile formats: +639XXXXXXXXX or 09XXXXXXXXX
     const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return phone.test(trimmed) || email.test(trimmed);
+  };
+
+  const parseApiErrorMessage = (err: unknown) => {
+    if (err instanceof Error) {
+      const raw = err.message || '';
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed?.message) return String(parsed.message);
+      } catch {
+        return raw;
+      }
+      return raw;
+    }
+    return 'Unable to submit your request right now. Please try again later.';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -212,7 +227,8 @@ const RequestService: React.FC = () => {
         certificateRecipientDeathDate: isDeathCertificate ? formData.certificateRecipientDeathDate : undefined,
         requesterRelationship: isFuneral || (category === RequestCategory.CERTIFICATE && !isMarriageCertificate)
           ? formData.requesterRelationship
-          : undefined
+          : undefined,
+        reissueReason: category === RequestCategory.CERTIFICATE ? formData.reissueReason : undefined
       });
       if (created.status === RequestStatus.REJECTED) {
         setRejectionMessage(created.adminNotes || 'Your request was received but cannot be processed at this time.');
@@ -220,7 +236,7 @@ const RequestService: React.FC = () => {
       setSubmitted(true);
       window.scrollTo(0, 0);
     } catch (err) {
-      setError('Unable to submit your request right now. Please try again later.');
+      setError(parseApiErrorMessage(err) || 'Unable to submit your request right now. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }
@@ -635,6 +651,20 @@ const RequestService: React.FC = () => {
                   </div>
                 )}
               </>
+            )}
+
+            {category === RequestCategory.CERTIFICATE && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Reissue (required if requesting another copy)</label>
+                <textarea
+                  rows={3}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                  placeholder="Briefly explain why you need another copy."
+                  value={formData.reissueReason}
+                  onChange={(e) => setFormData({ ...formData, reissueReason: e.target.value })}
+                />
+                <p className="text-xs text-gray-500 mt-1">If this is your first request, you may leave this blank.</p>
+              </div>
             )}
 
             <div className="md:col-span-2">

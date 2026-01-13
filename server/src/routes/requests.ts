@@ -14,6 +14,95 @@ const mapServiceToSacramentType = (service: string): SacramentType | null => {
   return null;
 };
 
+const buildCertificateRecordCriteria = (input: {
+  sacramentType: SacramentType;
+  certificateRecipientName?: string;
+  certificateRecipientBirthDate?: string;
+  certificateRecipientDeathDate?: string;
+  marriageGroomName?: string;
+  marriageBrideName?: string;
+  marriageDate?: string;
+}) => {
+  const where: any = { type: input.sacramentType, isArchived: false };
+  if (input.sacramentType === SacramentType.MARRIAGE) {
+    if (input.marriageGroomName) where.groomName = input.marriageGroomName;
+    if (input.marriageBrideName) where.brideName = input.marriageBrideName;
+    if (input.marriageDate) where.date = new Date(input.marriageDate);
+  } else {
+    if (input.certificateRecipientName) where.name = input.certificateRecipientName;
+    if (input.sacramentType === SacramentType.FUNERAL && input.certificateRecipientDeathDate) {
+      where.dateOfDeath = new Date(input.certificateRecipientDeathDate);
+    }
+    if (input.sacramentType !== SacramentType.FUNERAL && input.certificateRecipientBirthDate) {
+      where.birthDate = new Date(input.certificateRecipientBirthDate);
+    }
+  }
+  return where;
+};
+
+const buildCertificateAutoRejectNote = (input: {
+  sacramentType: SacramentType;
+  certificateRecipientName?: string;
+  certificateRecipientBirthDate?: string;
+  certificateRecipientDeathDate?: string;
+  marriageGroomName?: string;
+  marriageBrideName?: string;
+  marriageDate?: string;
+}) => {
+  if (input.sacramentType === SacramentType.MARRIAGE) {
+    const dateText = input.marriageDate ? new Date(input.marriageDate).toLocaleDateString() : 'unknown date';
+    return `No matching marriage record found for ${input.marriageGroomName || 'unknown groom'} and ${input.marriageBrideName || 'unknown bride'} (${dateText}).`;
+  }
+  if (input.sacramentType === SacramentType.FUNERAL) {
+    const dateText = input.certificateRecipientDeathDate
+      ? new Date(input.certificateRecipientDeathDate).toLocaleDateString()
+      : 'unknown date';
+    return `No matching funeral record found for ${input.certificateRecipientName || 'unknown name'} (date of death: ${dateText}).`;
+  }
+  const birthText = input.certificateRecipientBirthDate
+    ? new Date(input.certificateRecipientBirthDate).toLocaleDateString()
+    : 'birth date not provided';
+  return `No matching ${input.sacramentType.toLowerCase()} record found for ${input.certificateRecipientName || 'unknown name'} (${birthText}).`;
+};
+
+const findIssuedCertificateForRecord = async (input: {
+  sacramentType: SacramentType;
+  record: { id: string; name: string; birthDate: Date | null; dateOfDeath: Date | null; date: Date; groomName?: string | null; brideName?: string | null };
+}) => {
+  if (input.sacramentType === SacramentType.MARRIAGE) {
+    return prisma.issuedCertificate.findFirst({
+      where: {
+        request: {
+          category: RequestCategory.CERTIFICATE,
+          marriageGroomName: input.record.groomName ?? undefined,
+          marriageBrideName: input.record.brideName ?? undefined,
+          marriageDate: input.record.date
+        }
+      }
+    });
+  }
+  if (input.sacramentType === SacramentType.FUNERAL) {
+    return prisma.issuedCertificate.findFirst({
+      where: {
+        request: {
+          category: RequestCategory.CERTIFICATE,
+          certificateRecipientName: input.record.name,
+          certificateRecipientDeathDate: input.record.dateOfDeath ?? undefined
+        }
+      }
+    });
+  }
+  return prisma.issuedCertificate.findFirst({
+    where: {
+      request: {
+        category: RequestCategory.CERTIFICATE,
+        certificateRecipientName: input.record.name,
+        ...(input.record.birthDate ? { certificateRecipientBirthDate: input.record.birthDate } : {})
+      }
+    }
+  });
+};
+
 router.get('/', authenticate, async (_req, res) => {
   const requests = await prisma.serviceRequest.findMany({
     orderBy: { createdAt: 'desc' }
@@ -41,7 +130,8 @@ router.post('/', async (req, res) => {
     certificateRecipientName,
     certificateRecipientBirthDate,
     certificateRecipientDeathDate,
-    requesterRelationship
+    requesterRelationship,
+    reissueReason
   } = req.body;
 
   if (!category || !serviceType || !requesterName || !contactInfo) {
@@ -104,6 +194,55 @@ router.post('/', async (req, res) => {
     }
   }
 
+  let certificateStatus: RequestStatus | undefined;
+  let certificateNote: string | undefined;
+  let recordId: string | undefined;
+  let isReissue = false;
+
+  if (category === RequestCategory.CERTIFICATE) {
+    const sacramentType = mapServiceToSacramentType(serviceType);
+    if (sacramentType) {
+      const recordCriteria = buildCertificateRecordCriteria({
+        sacramentType,
+        certificateRecipientName,
+        certificateRecipientBirthDate,
+        certificateRecipientDeathDate,
+        marriageGroomName,
+        marriageBrideName,
+        marriageDate
+      });
+      const record = await prisma.sacramentRecord.findFirst({
+        where: recordCriteria,
+        orderBy: { date: 'desc' }
+      });
+
+      if (!record) {
+        certificateStatus = RequestStatus.REJECTED;
+        certificateNote = buildCertificateAutoRejectNote({
+          sacramentType,
+          certificateRecipientName,
+          certificateRecipientBirthDate,
+          certificateRecipientDeathDate,
+          marriageGroomName,
+          marriageBrideName,
+          marriageDate
+        });
+      } else {
+        recordId = record.id;
+        const existingIssued = await findIssuedCertificateForRecord({
+          sacramentType,
+          record
+        });
+        if (existingIssued) {
+          isReissue = true;
+          if (!reissueReason || !reissueReason.trim()) {
+            return res.status(400).json({ message: 'A reason is required when requesting another copy of this certificate.' });
+          }
+        }
+      }
+    }
+  }
+
   let confirmationStatus: RequestStatus | undefined;
   let confirmationNote: string | undefined;
   if (isConfirmationRequest) {
@@ -142,8 +281,11 @@ router.post('/', async (req, res) => {
       certificateRecipientBirthDate: certificateRecipientBirthDate ? new Date(certificateRecipientBirthDate) : undefined,
       certificateRecipientDeathDate: certificateRecipientDeathDate ? new Date(certificateRecipientDeathDate) : undefined,
       requesterRelationship,
-      status: confirmationStatus ?? RequestStatus.PENDING,
-      adminNotes: confirmationNote
+      recordId,
+      isReissue,
+      reissueReason: isReissue ? reissueReason?.trim() || undefined : undefined,
+      status: certificateStatus ?? confirmationStatus ?? RequestStatus.PENDING,
+      adminNotes: certificateNote ?? confirmationNote
     }
   });
 
@@ -175,6 +317,9 @@ router.put('/:id', authenticate, async (req, res) => {
     marriageGroomName?: string;
     marriageBrideName?: string;
     marriageDate?: string;
+    recordId?: string;
+    isReissue?: boolean;
+    reissueReason?: string;
   }> & {
     recordDetails?: {
       name?: string;

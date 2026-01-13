@@ -30,7 +30,8 @@ import {
   Mail,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
+  RefreshCcw
 } from 'lucide-react';
 
 export const Icons = {
@@ -64,5 +65,6 @@ export const Icons = {
   Mail,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
+  RefreshCcw
 };
