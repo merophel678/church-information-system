@@ -505,7 +505,7 @@ const renderConfirmationTemplate = (data: ConfirmationTemplateData): string => {
       <div style="text-align: center; margin-bottom: 20px;">
         was solemnly CONFIRMED according to the Rites of the Roman Catholic Church
       </div>
-      on the <span class="inline-value">${confirmationDay}</span> day of <span class="inline-value">${confirmationMonth}</span> <span class="inline-value">20${confirmationYear}</span>, at the <span class="italic-bold">${parishName}</span>, ${parishLocation}, by the <span class="italic-bold">${priestName}</span>. The sponsors being: <span class="inline-value">${sponsorsPrimary}</span> and <span class="inline-value">${sponsorsSecondary}</span>, as it appears in the CONFIRMATION REGISTER, Book No: <span class="inline-value">${registerBook}</span>, Page No: <span class="inline-value">${registerPage}</span>, Line No. <span class="inline-value">${registerLine}</span>.
+      on the <span class="inline-value">${confirmationDay}</span> day of <span class="inline-value">${confirmationMonth}</span> <span class="inline-value">20${confirmationYear}</span>, at the <span class="italic-bold">${parishName}</span>, ${parishLocation}, by the <span class="italic-bold">${priestName}</span>. The sponsors being: <span class="inline-value">${sponsorsPrimary}</span> <span class="inline-value">${sponsorsSecondary}</span>, as it appears in the CONFIRMATION REGISTER, Book No: <span class="inline-value">${registerBook}</span>, Page No: <span class="inline-value">${registerPage}</span>, Line No. <span class="inline-value">${registerLine}</span>.
     </div>
 
     <div class="body-text">
