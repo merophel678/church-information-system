@@ -74,6 +74,7 @@ const ManageRequests: React.FC = () => {
     completionFormData.type === SacramentType.FUNERAL;
   const isFuneral = completionFormData.type === SacramentType.FUNERAL;
   const showBaptismDateField = completionFormData.type === SacramentType.CONFIRMATION;
+  const dateGridCols = requiresBaptismInfo ? 'md:grid-cols-3' : 'md:grid-cols-2';
 
   const filteredRequests = requests.filter(req => {
     const matchesStatus = filterStatus === 'ALL' || req.status === filterStatus;
@@ -704,7 +705,7 @@ const ManageRequests: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className={`grid grid-cols-1 ${dateGridCols} gap-4`}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {isFuneral ? 'Date of Burial' : 'Date of Sacrament'}
@@ -717,17 +718,19 @@ const ManageRequests: React.FC = () => {
                     onChange={(e) => setCompletionFormData({ ...completionFormData, date: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.birthDate ?? ''}
-                    max={completionFormData.date || undefined}
-                    required={requiresBaptismInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, birthDate: e.target.value })}
-                  />
-                </div>
+                {requiresBaptismInfo && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                    <input
+                      type="date"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                      value={completionFormData.birthDate ?? ''}
+                      max={completionFormData.date || undefined}
+                      required
+                      onChange={(e) => setCompletionFormData({ ...completionFormData, birthDate: e.target.value })}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Officiant</label>
                   <input
@@ -791,109 +794,117 @@ const ManageRequests: React.FC = () => {
                 </>
               )}
 
-              <div className={`grid grid-cols-1 ${showBaptismDateField ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Birth Place</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.birthPlace ?? ''}
-                    required={requiresBaptismInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, birthPlace: e.target.value })}
-                  />
-                </div>
-                {showBaptismDateField && (
+              {requiresBaptismInfo && (
+                <div className={`grid grid-cols-1 ${showBaptismDateField ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Baptism</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Birth Place</label>
                     <input
-                      type="date"
+                      type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                      value={completionFormData.baptismDate ?? ''}
-                      max={completionFormData.date || undefined}
+                      value={completionFormData.birthPlace ?? ''}
                       required
-                      onChange={(e) => setCompletionFormData({ ...completionFormData, baptismDate: e.target.value })}
+                      onChange={(e) => setCompletionFormData({ ...completionFormData, birthPlace: e.target.value })}
                     />
                   </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Place of Baptism</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.baptismPlace ?? ''}
-                    required={requiresBaptismInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, baptismPlace: e.target.value })}
-                  />
+                  {showBaptismDateField && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Baptism</label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.baptismDate ?? ''}
+                        max={completionFormData.date || undefined}
+                        required
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, baptismDate: e.target.value })}
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Place of Baptism</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                      value={completionFormData.baptismPlace ?? ''}
+                      required
+                      onChange={(e) => setCompletionFormData({ ...completionFormData, baptismPlace: e.target.value })}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.fatherName ?? ''}
-                    required={requiresBaptismInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, fatherName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.motherName ?? ''}
-                    required={requiresBaptismInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, motherName: e.target.value })}
-                  />
-                </div>
-              </div>
+              {requiresBaptismInfo && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.fatherName ?? ''}
+                        required
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, fatherName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                        value={completionFormData.motherName ?? ''}
+                        required
+                        onChange={(e) => setCompletionFormData({ ...completionFormData, motherName: e.target.value })}
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sponsors</label>
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    rows={2}
-                    placeholder="List sponsors/godparents"
-                    value={completionFormData.sponsors ?? ''}
-                    required={requiresBaptismInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, sponsors: e.target.value })}
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sponsors</label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                      rows={2}
+                      placeholder="List sponsors/godparents"
+                      value={completionFormData.sponsors ?? ''}
+                      required
+                      onChange={(e) => setCompletionFormData({ ...completionFormData, sponsors: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Register Book</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.registerBook ?? ''}
-                    required={requiresRegisterInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, registerBook: e.target.value })}
-                  />
+              {requiresRegisterInfo && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Register Book</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                      value={completionFormData.registerBook ?? ''}
+                      required
+                      onChange={(e) => setCompletionFormData({ ...completionFormData, registerBook: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Page</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                      value={completionFormData.registerPage ?? ''}
+                      required
+                      onChange={(e) => setCompletionFormData({ ...completionFormData, registerPage: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Line</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                      value={completionFormData.registerLine ?? ''}
+                      required
+                      onChange={(e) => setCompletionFormData({ ...completionFormData, registerLine: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Page</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.registerPage ?? ''}
-                    required={requiresRegisterInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, registerPage: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Line</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                    value={completionFormData.registerLine ?? ''}
-                    required={requiresRegisterInfo}
-                    onChange={(e) => setCompletionFormData({ ...completionFormData, registerLine: e.target.value })}
-                  />
-                </div>
-              </div>
+              )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
