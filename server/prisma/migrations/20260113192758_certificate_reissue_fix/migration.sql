@@ -1,0 +1,9 @@
+ALTER TABLE ServiceRequest
+  ADD COLUMN ecordId VARCHAR(191) NULL,
+  ADD COLUMN isReissue BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN eissueReason VARCHAR(191) NULL;
+
+ALTER TABLE ServiceRequest
+  ADD CONSTRAINT ServiceRequest_recordId_fkey
+  FOREIGN KEY (ecordId) REFERENCES SacramentRecord(id)
+  ON DELETE SET NULL ON UPDATE CASCADE;
