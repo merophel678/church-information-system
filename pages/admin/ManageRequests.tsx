@@ -151,6 +151,81 @@ const ManageRequests: React.FC = () => {
   const normalizeName = (value?: string) =>
     (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
+  const parseApiErrorMessage = (error: unknown) => {
+    if (error instanceof Error) {
+      const raw = error.message || '';
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed?.message) return String(parsed.message);
+      } catch {
+        return raw;
+      }
+      return raw;
+    }
+    return 'Please try again shortly.';
+  };
+
+  const findCertificateRecord = (req: ServiceRequest) => {
+    const normalizedService = req.serviceType.toLowerCase();
+    const isMarriageCert = normalizedService.includes('marriage');
+    const sacramentType = inferSacramentType(req.serviceType);
+
+    if (isMarriageCert) {
+      const groom = normalizeName(req.marriageGroomName);
+      const bride = normalizeName(req.marriageBrideName);
+      const marriageDate = toInputDate(req.marriageDate);
+      if (!groom || !bride || !marriageDate) return undefined;
+      return records.find((rec) => {
+        if (rec.type !== SacramentType.MARRIAGE || rec.isArchived) return false;
+        if (normalizeName(rec.groomName) !== groom) return false;
+        if (normalizeName(rec.brideName) !== bride) return false;
+        return toInputDate(rec.date) === marriageDate;
+      });
+    }
+
+    if (sacramentType === SacramentType.FUNERAL) {
+      const recipient = normalizeName(req.certificateRecipientName);
+      const deathDate = toInputDate(req.certificateRecipientDeathDate);
+      if (!recipient || !deathDate) return undefined;
+      return records.find((rec) => {
+        if (rec.type !== SacramentType.FUNERAL || rec.isArchived) return false;
+        if (normalizeName(rec.name) !== recipient) return false;
+        return toInputDate(rec.dateOfDeath) === deathDate;
+      });
+    }
+
+    const recipient = normalizeName(req.certificateRecipientName);
+    if (!recipient) return undefined;
+    const birthDate = toInputDate(req.certificateRecipientBirthDate);
+    return records.find((rec) => {
+      if (rec.type !== sacramentType || rec.isArchived) return false;
+      if (normalizeName(rec.name) !== recipient) return false;
+      if (birthDate) {
+        return toInputDate(rec.birthDate) === birthDate;
+      }
+      return true;
+    });
+  };
+
+  const buildCertificateMatchMessage = (req: ServiceRequest) => {
+    const normalizedService = req.serviceType.toLowerCase();
+    const isMarriageCert = normalizedService.includes('marriage');
+    const isFuneralCert =
+      normalizedService.includes('funeral') ||
+      normalizedService.includes('burial') ||
+      normalizedService.includes('death');
+
+    if (isMarriageCert) {
+      return `No matching marriage record found. Verify groom, bride, and marriage date:\n- Groom: ${req.marriageGroomName || 'Not provided'}\n- Bride: ${req.marriageBrideName || 'Not provided'}\n- Date: ${req.marriageDate ? formatDate(req.marriageDate) : 'Not provided'}`;
+    }
+
+    if (isFuneralCert) {
+      return `No matching funeral record found. Verify the deceased name and date of death:\n- Name: ${req.certificateRecipientName || 'Not provided'}\n- Date of death: ${req.certificateRecipientDeathDate ? formatDate(req.certificateRecipientDeathDate) : 'Not provided'}`;
+    }
+
+    return `No matching sacrament record found. Verify the recipient details:\n- Name: ${req.certificateRecipientName || 'Not provided'}\n- Birth date: ${req.certificateRecipientBirthDate ? formatDate(req.certificateRecipientBirthDate) : 'Not provided'}`;
+  };
+
   const findBaptismRecordForConfirmation = (req: ServiceRequest) => {
     const candidateName = normalizeName(req.confirmationCandidateName);
     const candidateBirthDate = toInputDate(req.confirmationCandidateBirthDate);
@@ -410,7 +485,17 @@ const ManageRequests: React.FC = () => {
   };
 
   // --- Issue Logic ---
-  const openIssueModal = (request: ServiceRequest) => {
+  const openIssueModal = async (request: ServiceRequest) => {
+    if (request.category === RequestCategory.CERTIFICATE) {
+      const matchingRecord = findCertificateRecord(request);
+      if (!matchingRecord) {
+        await alert({
+          title: 'No matching record',
+          message: `${buildCertificateMatchMessage(request)}\n\nPlease add the record in Sacramental Records before issuing the certificate.`
+        });
+        return;
+      }
+    }
     setSelectedRequestForIssue(request);
     setIsIssueModalOpen(true);
     setIssueData({
@@ -430,7 +515,7 @@ const ManageRequests: React.FC = () => {
       } catch (error) {
         await alert({
           title: 'Unable to issue certificate',
-          message: 'Please try again shortly.'
+          message: parseApiErrorMessage(error) || 'Please try again shortly.'
         });
       }
     }
@@ -578,7 +663,7 @@ const ManageRequests: React.FC = () => {
                             </span>
                           ) : (
                             <button 
-                              onClick={() => openIssueModal(req)}
+                              onClick={() => void openIssueModal(req)}
                               className="text-teal-600 hover:text-teal-900 p-1 border border-teal-200 rounded bg-teal-50 text-xs px-2"
                             >
                               Issue Cert
