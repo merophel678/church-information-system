@@ -12,6 +12,7 @@ A comprehensive Information Management System designed for the **Quasi-Parish of
 *   **Online Services**:
     *   **Sacrament Requests**: Schedule Baptisms, Confirmations, Weddings, and Funeral Blessings.
     *   **Certificate Requests**: Request Baptismal, Confirmation, Marriage, and Death certificates online.
+    *   **Validation**: Confirmation requests require a matching baptism record (name + birth date).
 
 ### Admin Dashboard (Staff Only)
 *   **Secure Access**: Role-based login for parish administrators.
@@ -22,12 +23,16 @@ A comprehensive Information Management System designed for the **Quasi-Parish of
     *   **Donations**: Record and manage donor entries.
 *   **Service Request Management**:
     *   **Workflow**: Track requests from 'Pending' to 'Approved', 'Scheduled', or 'Completed'.
+    *   **Locking**: Completed or rejected requests cannot be edited.
     *   **Scheduling**: Set confirmed dates and times for sacraments.
-    *   **Issuance**: Issue certificates directly from requests, automatically archiving them in the registry.
+    *   **Certificate Requests**: Validated against sacrament records; missing records auto-reject with an admin note.
+    *   **Reissues**: Duplicate certificate requests require a reason and are tagged as reissues.
+    *   **Issuance**: Issue certificates directly from requests when a matching record exists.
     *   **Automation**: Automatically generates a permanent Sacrament Record when a sacrament request is completed.
 *   **Records Management**:
-    *   **Sacramental Records**: Full CRUD (Create, Read, Update, Delete) capabilities for Baptism, Confirmation, Marriage, and Funeral records.
-    *   **Certificate Registry**: A secure archive of all issued certificates with a "Digital Copy" viewer for printing and verification.
+    *   **Sacramental Records**: Create, view (details modal), archive, and restore records for Baptism, Confirmation, Marriage, and Funeral.
+    *   **Data Completeness**: Add Record form includes sacrament-specific fields that match certificate templates.
+    *   **Certificate Registry**: A secure archive of issued certificates grouped by record with issue/request counts and PDF download.
 
 ## 🛠 Tech Stack
 
@@ -64,7 +69,7 @@ A comprehensive Information Management System designed for the **Quasi-Parish of
    cp .env.example .env        # update DATABASE_URL / JWT_SECRET / CORS_ORIGIN
    npm install
    npx prisma migrate dev
-   npm run seed                # creates admin/admin and sample data
+   npm run seed                # creates admin/admin and sample data (clears existing data)
    npm run dev                 # starts the API on http://localhost:4000
    ```
 
@@ -93,7 +98,8 @@ To access the Admin Dashboard:
     *   Go to *Manage Service Requests*.
     *   Filter for 'Certificate' requests.
     *   Click **Issue Cert**.
-    *   Fill in delivery details.
+    *   If no matching sacrament record exists, the request is auto-rejected with an admin note.
+    *   If a record exists, fill in delivery details.
     *   The request moves to 'Completed', and the certificate is logged in the *Certificate Registry*.
 
 2.  **Scheduling a Baptism**:
@@ -108,6 +114,11 @@ To access the Admin Dashboard:
     *   Open *Certificate Registry*, locate the pending entry (highlighted with “Upload Required”), and upload the signed PDF/JPG/PNG copy.
     *   Until a file is uploaded, the certificate cannot be downloaded. Once uploaded, the status switches to **Uploaded**, recording who uploaded it and when.
     *   Entries that remain pending beyond the reminder window (configurable via `UPLOAD_REMINDER_HOURS`) are flagged so staff can follow up.
+
+4.  **Certificate Reissue Workflow**:
+    *   When a duplicate certificate request is submitted, it is tagged as a reissue.
+    *   A reason is required at request time.
+    *   The registry groups reissues under the same record and increments the issue count.
 
 4.  **Customize Mass & Events Highlight**:
     *   Visit *Manage Schedules* to update the hero section on the Mass & Events page (title, message, and CTA link).
