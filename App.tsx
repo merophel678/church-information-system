@@ -66,7 +66,10 @@ const App: React.FC = () => {
               <Route path="/schedules" element={<Schedules />} />
               <Route path="/bulletin" element={<Bulletin />} />
               <Route path="/donations" element={<Donations />} />
-              <Route path="/services" element={<RequestService />} />
+              <Route
+                path="/services"
+                element={user ? <Navigate to="/admin/dashboard" replace /> : <RequestService />}
+              />
               <Route path="/login" element={<Login onLogin={handleLogin} />} />
 
               {/* Protected Admin Routes */}
