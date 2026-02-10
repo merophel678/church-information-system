@@ -76,6 +76,7 @@ export const api = {
     serviceType: string;
     requesterName: string;
     contactInfo: string;
+    requesterEmail: string;
     preferredDate?: string;
     details: string;
     confirmationCandidateName?: string;

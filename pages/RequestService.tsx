@@ -17,6 +17,7 @@ const RequestService: React.FC = () => {
   const initialFormState = {
     requesterName: '',
     contactInfo: '',
+    requesterEmail: '',
     preferredDate: '',
     details: '',
     funeralDeceasedName: '',
@@ -54,12 +55,8 @@ const RequestService: React.FC = () => {
     setFormData(initialFormState);
   };
 
-  const isValidContact = (value: string) => {
-    const trimmed = value.trim();
-    const phone = /^(?:\+639|09)\d{9}$/; // PH mobile formats: +639XXXXXXXXX or 09XXXXXXXXX
-    const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return phone.test(trimmed) || email.test(trimmed);
-  };
+  const isValidPhone = (value: string) => /^(?:\+639|09)\d{9}$/.test(value.trim());
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
   const parseApiErrorMessage = (err: unknown) => {
     if (err instanceof Error) {
@@ -80,8 +77,13 @@ const RequestService: React.FC = () => {
     setError('');
     setRejectionMessage('');
     setIsSubmitting(true);
-    if (!isValidContact(formData.contactInfo)) {
-      setError('Enter a valid email or PH mobile (+63 or 09 followed by 9 digits).');
+    if (!isValidEmail(formData.requesterEmail)) {
+      setError('Enter a valid email address so we can send you updates.');
+      setIsSubmitting(false);
+      return;
+    }
+    if (formData.contactInfo.trim() && !isValidPhone(formData.contactInfo)) {
+      setError('Contact number must be a PH mobile (+639XXXXXXXXX or 09XXXXXXXXX).');
       setIsSubmitting(false);
       return;
     }
@@ -210,6 +212,7 @@ const RequestService: React.FC = () => {
         serviceType,
         requesterName: formData.requesterName,
         contactInfo: formData.contactInfo,
+        requesterEmail: formData.requesterEmail,
         preferredDate: formData.preferredDate,
         details: formData.details,
         confirmationCandidateName: isConfirmation ? formData.confirmationCandidateName : undefined,
@@ -252,7 +255,7 @@ const RequestService: React.FC = () => {
         <p className="text-gray-600 mb-8 text-lg">
           {rejectionMessage ? rejectionMessage : 'Thank you for your request. Our parish staff has been notified and will review your application.'}
           {!rejectionMessage && (
-            <> We will contact you via {formData.contactInfo} regarding the next steps.</>
+            <> We will email you at {formData.requesterEmail} regarding the next steps.</>
           )}
         </p>
         <button 
@@ -274,7 +277,7 @@ const RequestService: React.FC = () => {
         <h1 className="text-3xl md:text-4xl font-serif font-bold text-parish-blue mb-4">Online Service Requests</h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Request sacraments or certificates conveniently from home. 
-          Please fill out the form below and our office will get in touch with you.
+          Please fill out the form below and our office will email you updates.
         </p>
       </div>
 
@@ -381,22 +384,36 @@ const RequestService: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (Mobile/Email)</label>
-              <input 
-                type="text" 
-                required
-                placeholder="0917... or email@example.com"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
-                value={formData.contactInfo}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({...formData, contactInfo: value});
-                  if (error && isValidContact(value)) {
-                    setError('');
-                  }
-                }}
-              />
+            <div className="md:col-span-2 grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                  value={formData.requesterEmail}
+                  onChange={(e) => setFormData({ ...formData, requesterEmail: e.target.value })}
+                />
+                <p className="text-xs text-gray-500 mt-1">We send status updates to this email.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="+639XXXXXXXXX or 09XXXXXXXXX"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
+                  value={formData.contactInfo}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, contactInfo: value });
+                    if (error && (!value.trim() || isValidPhone(value))) {
+                      setError('');
+                    }
+                  }}
+                />
+              </div>
             </div>
 
             {category === RequestCategory.CERTIFICATE && (

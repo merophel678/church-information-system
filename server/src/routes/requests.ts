@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { DeliveryMethod, RequestCategory, RequestStatus, SacramentType } from '@prisma/client';
+import { buildStatusEmail, resolveRequestEmail, sendEmail } from '../services/emailService.js';
 
 const router = Router();
 
@@ -116,6 +117,7 @@ router.post('/', async (req, res) => {
     serviceType,
     requesterName,
     contactInfo,
+    requesterEmail,
     preferredDate,
     details,
     confirmationCandidateName,
@@ -134,8 +136,13 @@ router.post('/', async (req, res) => {
     reissueReason
   } = req.body;
 
-  if (!category || !serviceType || !requesterName || !contactInfo) {
+  if (!category || !serviceType || !requesterName || !requesterEmail) {
     return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  // Basic email validation (frontend also validates).
+  if (typeof requesterEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail.trim())) {
+    return res.status(400).json({ message: 'A valid email address is required' });
   }
 
   const normalizedService = String(serviceType || '').toLowerCase();
@@ -265,7 +272,8 @@ router.post('/', async (req, res) => {
       category,
       serviceType,
       requesterName,
-      contactInfo,
+      contactInfo: contactInfo ?? '',
+      requesterEmail,
       preferredDate,
       details: details ?? '',
       confirmationCandidateName,
@@ -289,6 +297,32 @@ router.post('/', async (req, res) => {
     }
   });
 
+  // Send a rejection email if the request was auto-rejected (e.g. missing matching record).
+  if (request.status === RequestStatus.REJECTED) {
+    const to = resolveRequestEmail(request);
+    if (to) {
+      try {
+        const email = buildStatusEmail({
+          requesterName: request.requesterName,
+          serviceType: request.serviceType,
+          requestId: request.id,
+          status: request.status,
+          confirmedSchedule: request.confirmedSchedule,
+          adminNotes: request.adminNotes
+        });
+        await sendEmail({
+          from: email.from,
+          to,
+          subject: email.subject,
+          html: email.html,
+          reply_to: email.replyTo
+        });
+      } catch (err) {
+        console.warn('Unable to send auto-reject email', err);
+      }
+    }
+  }
+
   res.status(201).json(request);
 });
 
@@ -299,6 +333,7 @@ router.put('/:id', authenticate, async (req, res) => {
     serviceType: string;
     requesterName: string;
     contactInfo: string;
+    requesterEmail: string | null;
     preferredDate: string | null;
     details: string;
     status: RequestStatus;
@@ -394,6 +429,40 @@ router.put('/:id', authenticate, async (req, res) => {
       marriageDate: updates.marriageDate ? new Date(updates.marriageDate) : undefined
     }
   });
+
+  // Send email notification for milestone status changes.
+  if (updates.status && updates.status !== existing.status) {
+    const milestone = new Set<RequestStatus>([
+      RequestStatus.APPROVED,
+      RequestStatus.SCHEDULED,
+      RequestStatus.COMPLETED,
+      RequestStatus.REJECTED
+    ]);
+    if (milestone.has(updates.status)) {
+      const to = resolveRequestEmail(updated);
+      if (to) {
+        try {
+          const email = buildStatusEmail({
+            requesterName: updated.requesterName,
+            serviceType: updated.serviceType,
+            requestId: updated.id,
+            status: updated.status,
+            confirmedSchedule: updated.confirmedSchedule,
+            adminNotes: updated.adminNotes
+          });
+          await sendEmail({
+            from: email.from,
+            to,
+            subject: email.subject,
+            html: email.html,
+            reply_to: email.replyTo
+          });
+        } catch (err) {
+          console.warn('Unable to send status email', err);
+        }
+      }
+    }
+  }
 
   if (
     updates.status === RequestStatus.COMPLETED &&
@@ -567,6 +636,30 @@ router.post('/:id/issue', authenticate, async (req, res) => {
 
     return created;
   });
+
+  // Notify requester that their certificate request was completed/issued.
+  const to = resolveRequestEmail(request);
+  if (to) {
+    try {
+      const email = buildStatusEmail({
+        requesterName: request.requesterName,
+        serviceType: request.serviceType,
+        requestId: request.id,
+        status: RequestStatus.COMPLETED,
+        confirmedSchedule: request.confirmedSchedule,
+        adminNotes: request.adminNotes
+      });
+      await sendEmail({
+        from: email.from,
+        to,
+        subject: email.subject,
+        html: email.html,
+        reply_to: email.replyTo
+      });
+    } catch (err) {
+      console.warn('Unable to send certificate issuance email', err);
+    }
+  }
 
   res.status(201).json(certificate);
 });

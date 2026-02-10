@@ -99,7 +99,8 @@ export interface ServiceRequest {
   category: RequestCategory;
   serviceType: string; // e.g., "Baptism", "Marriage Certificate"
   requesterName: string;
-  contactInfo: string; // Email or Phone
+  contactInfo: string; // Optional phone number (legacy field name)
+  requesterEmail?: string;
   preferredDate?: string; // Relevant for sacraments
   details: string; // Purpose or additional info
   confirmationCandidateName?: string;
