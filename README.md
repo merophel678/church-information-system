@@ -135,7 +135,9 @@ To access the Admin Dashboard:
    * Environment variables:
      * `DATABASE_URL` – from the MySQL plugin
      * `JWT_SECRET`, `PORT`, `CORS_ORIGIN`, `UPLOAD_FILE_LIMIT_MB`, `UPLOAD_REMINDER_HOURS`
-   * Run `railway run npx prisma migrate deploy` (and `npm run seed` if desired).
+     * Email notifications: `RESEND_API_KEY`, `EMAIL_FROM`, optionally `EMAIL_REPLY_TO`, `PARISH_NAME`, `CONFIRMATION_REQUIREMENTS`
+   * Run `railway run npx prisma migrate deploy`.
+   * Run `npm run seed` only for a brand new demo database. It clears existing tables.
    * Note the public API URL, e.g. `https://your-api.up.railway.app`.
 
 3. **Deploy the Vite Frontend on Vercel**
@@ -148,5 +150,6 @@ To access the Admin Dashboard:
 
 5. **Migrations**
    * Each time the schema changes, run `railway run npx prisma migrate deploy` to apply migrations in production.
+   * To verify status before applying, run `railway run npx prisma migrate status`.
 
 This setup keeps the frontend static on Vercel while the API + database run on Railway. Update `.env.local`/`.env` locally to mirror the production values when testing against live services.
