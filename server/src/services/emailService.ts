@@ -82,7 +82,9 @@ export function buildStatusEmail(params: {
   const safeNotes = (params.adminNotes ?? '').trim();
   const schedule = (params.confirmedSchedule ?? '').trim();
   const isApproved = params.status.toLowerCase() === 'approved';
-  const isSacrament = (params.category ?? '').toLowerCase() === 'sacrament';
+  const normalizedCategory = (params.category ?? '').trim().toLowerCase();
+  // Fallback to sacrament when category is missing so older payloads still render requirements.
+  const isSacrament = normalizedCategory ? normalizedCategory === 'sacrament' : true;
   const normalizedService = params.serviceType.toLowerCase();
 
   const confirmationRequirements = getEnv('CONFIRMATION_REQUIREMENTS');
