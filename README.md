@@ -152,4 +152,9 @@ To access the Admin Dashboard:
    * Each time the schema changes, run `railway run npx prisma migrate deploy` to apply migrations in production.
    * To verify status before applying, run `railway run npx prisma migrate status`.
 
+6. **Admin Bootstrap (without wiping data)**
+   * Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_ROLE` (optional) on Railway.
+   * Run `railway run npm run seed:admin`.
+   * By default, existing admin passwords are not changed unless `ADMIN_RESET_PASSWORD=true`.
+
 This setup keeps the frontend static on Vercel while the API + database run on Railway. Update `.env.local`/`.env` locally to mirror the production values when testing against live services.
