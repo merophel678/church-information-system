@@ -71,6 +71,7 @@ export function buildStatusEmail(params: {
   serviceType: string;
   requestId: string;
   status: string;
+  category?: string | null;
   confirmedSchedule?: string | null;
   adminNotes?: string | null;
 }) {
@@ -80,11 +81,35 @@ export function buildStatusEmail(params: {
 
   const safeNotes = (params.adminNotes ?? '').trim();
   const schedule = (params.confirmedSchedule ?? '').trim();
+  const isApproved = params.status.toLowerCase() === 'approved';
+  const isSacrament = (params.category ?? '').toLowerCase() === 'sacrament';
+  const normalizedService = params.serviceType.toLowerCase();
+
   const confirmationRequirements = getEnv('CONFIRMATION_REQUIREMENTS');
+  const baptismRequirements = getEnv('BAPTISM_REQUIREMENTS');
+  const marriageRequirements = getEnv('MARRIAGE_REQUIREMENTS');
+  const funeralRequirements = getEnv('FUNERAL_REQUIREMENTS');
+
   const isConfirmationApproved =
-    params.status.toLowerCase() === 'approved' &&
-    params.serviceType.toLowerCase().includes('confirmation') &&
+    isApproved &&
+    isSacrament &&
+    normalizedService.includes('confirmation') &&
     confirmationRequirements;
+  const isBaptismApproved =
+    isApproved &&
+    isSacrament &&
+    normalizedService.includes('baptism') &&
+    baptismRequirements;
+  const isMarriageApproved =
+    isApproved &&
+    isSacrament &&
+    normalizedService.includes('marriage') &&
+    marriageRequirements;
+  const isFuneralApproved =
+    isApproved &&
+    isSacrament &&
+    (normalizedService.includes('funeral') || normalizedService.includes('burial')) &&
+    funeralRequirements;
 
   const subject = `${parishName}: ${params.serviceType} request is now ${params.status}`;
   const html = `
@@ -100,6 +125,27 @@ export function buildStatusEmail(params: {
           ? `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
              <p><strong>Confirmation Requirements:</strong></p>
              <div style="white-space: pre-wrap;">${escapeHtml(confirmationRequirements)}</div>`
+          : ''
+      }
+      ${
+        isBaptismApproved
+          ? `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+             <p><strong>Baptism Requirements:</strong></p>
+             <div style="white-space: pre-wrap;">${escapeHtml(baptismRequirements)}</div>`
+          : ''
+      }
+      ${
+        isMarriageApproved
+          ? `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+             <p><strong>Marriage Requirements:</strong></p>
+             <div style="white-space: pre-wrap;">${escapeHtml(marriageRequirements)}</div>`
+          : ''
+      }
+      ${
+        isFuneralApproved
+          ? `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+             <p><strong>Funeral Requirements:</strong></p>
+             <div style="white-space: pre-wrap;">${escapeHtml(funeralRequirements)}</div>`
           : ''
       }
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />

@@ -135,7 +135,7 @@ To access the Admin Dashboard:
    * Environment variables:
      * `DATABASE_URL` – from the MySQL plugin
      * `JWT_SECRET`, `PORT`, `CORS_ORIGIN`, `UPLOAD_FILE_LIMIT_MB`, `UPLOAD_REMINDER_HOURS`
-     * Email notifications: `RESEND_API_KEY`, `EMAIL_FROM`, optionally `EMAIL_REPLY_TO`, `PARISH_NAME`, `CONFIRMATION_REQUIREMENTS`
+     * Email notifications: `RESEND_API_KEY`, `EMAIL_FROM`, optionally `EMAIL_REPLY_TO`, `PARISH_NAME`, `CONFIRMATION_REQUIREMENTS`, `BAPTISM_REQUIREMENTS`, `MARRIAGE_REQUIREMENTS`, `FUNERAL_REQUIREMENTS`
    * Run `railway run npx prisma migrate deploy`.
    * Run `npm run seed` only for a brand new demo database. It clears existing tables.
    * Note the public API URL, e.g. `https://your-api.up.railway.app`.
