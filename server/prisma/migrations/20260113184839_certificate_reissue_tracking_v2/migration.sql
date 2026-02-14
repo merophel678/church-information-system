@@ -1,1 +1,3 @@
--- AlterTable ALTER TABLE `ServiceRequest` ADD COLUMN `isReissue` BOOLEAN NOT NULL DEFAULT false,     ADD COLUMN `recordId` VARCHAR(191) NULL,     ADD COLUMN `reissueReason` VARCHAR(191) NULL;  -- AddForeignKey ALTER TABLE `ServiceRequest` ADD CONSTRAINT `ServiceRequest_recordId_fkey` FOREIGN KEY (`recordId`) REFERENCES `SacramentRecord`(`id`) ON DELETE SET NULL ON UPDATE CASCADE; 
+-- Kept as a no-op to preserve migration history order.
+-- Superseded by 20260113182420_certificate_reissue_tracking and 20260215140000_recordid_repair.
+SELECT 1;

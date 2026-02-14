@@ -1,9 +1,3 @@
-ALTER TABLE ServiceRequest
-  ADD COLUMN ecordId VARCHAR(191) NULL,
-  ADD COLUMN isReissue BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN eissueReason VARCHAR(191) NULL;
-
-ALTER TABLE ServiceRequest
-  ADD CONSTRAINT ServiceRequest_recordId_fkey
-  FOREIGN KEY (ecordId) REFERENCES SacramentRecord(id)
-  ON DELETE SET NULL ON UPDATE CASCADE;
+-- Kept as a no-op to preserve migration history order.
+-- Original SQL in this migration had malformed column names and is repaired by 20260215140000_recordid_repair.
+SELECT 1;

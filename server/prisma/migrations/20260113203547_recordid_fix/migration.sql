@@ -1,1 +1,3 @@
--- DropForeignKey ALTER TABLE `ServiceRequest` DROP FOREIGN KEY `ServiceRequest_recordId_fkey`;  -- AlterTable ALTER TABLE `ServiceRequest` DROP COLUMN `ecordId`,     DROP COLUMN `eissueReason`,     ADD COLUMN `recordId` VARCHAR(191) NULL,     ADD COLUMN `reissueReason` VARCHAR(191) NULL;  -- AddForeignKey ALTER TABLE `ServiceRequest` ADD CONSTRAINT `ServiceRequest_recordId_fkey` FOREIGN KEY (`recordId`) REFERENCES `SacramentRecord`(`id`) ON DELETE SET NULL ON UPDATE CASCADE; 
+-- Kept as a no-op to preserve migration history order.
+-- Record/fix logic is handled by 20260215140000_recordid_repair.
+SELECT 1;
