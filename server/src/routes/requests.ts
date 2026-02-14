@@ -307,6 +307,7 @@ router.post('/', async (req, res) => {
           serviceType: request.serviceType,
           requestId: request.id,
           status: request.status,
+          category: request.category,
           confirmedSchedule: request.confirmedSchedule,
           adminNotes: request.adminNotes
         });
@@ -410,6 +411,17 @@ router.put('/:id', authenticate, async (req, res) => {
     return res.status(400).json({ message: 'Rejected requests cannot be reopened.' });
   }
 
+  if (updates.status === RequestStatus.SCHEDULED) {
+    const confirmedSchedule = updates.confirmedSchedule?.trim();
+    if (!confirmedSchedule) {
+      return res.status(400).json({ message: 'Confirmed date and time are required when scheduling.' });
+    }
+    if (Number.isNaN(Date.parse(confirmedSchedule))) {
+      return res.status(400).json({ message: 'Confirmed date and time must be a valid datetime.' });
+    }
+    updates.confirmedSchedule = confirmedSchedule;
+  }
+
   const updated = await prisma.serviceRequest.update({
     where: { id },
     data: {
@@ -447,6 +459,7 @@ router.put('/:id', authenticate, async (req, res) => {
             serviceType: updated.serviceType,
             requestId: updated.id,
             status: updated.status,
+            category: updated.category,
             confirmedSchedule: updated.confirmedSchedule,
             adminNotes: updated.adminNotes
           });
@@ -471,12 +484,13 @@ router.put('/:id', authenticate, async (req, res) => {
   ) {
     const sacramentType = mapServiceToSacramentType(updated.serviceType);
     if (sacramentType) {
-      const possibleDate =
-        recordDetails?.date ||
-        updates.confirmedSchedule?.split(' ')[0] ||
-        updates.preferredDate ||
-        existing.confirmedSchedule?.split(' ')[0] ||
-        existing.preferredDate;
+      const possibleDate = [
+        recordDetails?.date,
+        updates.confirmedSchedule,
+        updates.preferredDate,
+        existing.confirmedSchedule,
+        existing.preferredDate
+      ].find((value) => value && !Number.isNaN(Date.parse(value)));
 
       const date = possibleDate && !Number.isNaN(Date.parse(possibleDate))
         ? new Date(possibleDate)
@@ -646,6 +660,7 @@ router.post('/:id/issue', authenticate, async (req, res) => {
         serviceType: request.serviceType,
         requestId: request.id,
         status: RequestStatus.COMPLETED,
+        category: request.category,
         confirmedSchedule: request.confirmedSchedule,
         adminNotes: request.adminNotes
       });

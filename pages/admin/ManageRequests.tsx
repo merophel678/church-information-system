@@ -148,6 +148,41 @@ const ManageRequests: React.FC = () => {
     return date.toISOString().split('T')[0];
   };
 
+  const toDateTimeLocalInput = (value?: string | Date | null, fallbackTime = '09:00') => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
+        return trimmed;
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return `${trimmed}T${fallbackTime}`;
+      }
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const formatScheduleDateTime = (value?: string | null) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('en-PH', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(date);
+  };
+
   const normalizeName = (value?: string) =>
     (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -252,7 +287,10 @@ const ManageRequests: React.FC = () => {
     if (newStatus === RequestStatus.SCHEDULED || newStatus === RequestStatus.APPROVED || newStatus === RequestStatus.REJECTED) {
       setStatusUpdateTarget({ req, newStatus });
       setStatusFormData({
-        confirmedSchedule: req.confirmedSchedule || req.preferredDate || '',
+        confirmedSchedule:
+          toDateTimeLocalInput(req.confirmedSchedule) ||
+          toDateTimeLocalInput(req.preferredDate) ||
+          '',
         adminNotes: req.adminNotes || ''
       });
       setIsStatusModalOpen(true);
@@ -331,6 +369,24 @@ const ManageRequests: React.FC = () => {
   const confirmStatusUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!statusUpdateTarget) return;
+
+    if (statusUpdateTarget.newStatus === RequestStatus.SCHEDULED) {
+      if (!statusFormData.confirmedSchedule.trim()) {
+        await alert({
+          title: 'Missing schedule',
+          message: 'Please provide a confirmed date and time.'
+        });
+        return;
+      }
+      const parsed = new Date(statusFormData.confirmedSchedule);
+      if (Number.isNaN(parsed.getTime())) {
+        await alert({
+          title: 'Invalid schedule',
+          message: 'Please provide a valid confirmed date and time.'
+        });
+        return;
+      }
+    }
 
     const updates: Partial<ServiceRequest> = {
       status: statusUpdateTarget.newStatus,
@@ -613,7 +669,7 @@ const ManageRequests: React.FC = () => {
                     {req.confirmedSchedule && (
                       <div className="mt-1 flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded w-fit">
                         <Icons.Clock size={12} />
-                        {req.confirmedSchedule}
+                        {formatScheduleDateTime(req.confirmedSchedule)}
                       </div>
                     )}
                   </td>
@@ -783,14 +839,14 @@ const ManageRequests: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirmed Date & Time</label>
                   <input 
-                    type="text"
-                    placeholder="e.g., Dec 25, 2023 at 10:00 AM"
+                    type="datetime-local"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-parish-blue outline-none"
                     value={statusFormData.confirmedSchedule}
                     onChange={(e) => setStatusFormData({...statusFormData, confirmedSchedule: e.target.value})}
+                    step={60}
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">Preferred: {statusUpdateTarget.req.preferredDate || 'None'}</p>
+                  <p className="text-xs text-gray-500 mt-1">Preferred: {statusUpdateTarget.req.preferredDate ? formatDate(statusUpdateTarget.req.preferredDate) : 'None'}</p>
                 </div>
               )}
 
